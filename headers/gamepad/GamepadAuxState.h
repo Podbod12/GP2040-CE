@@ -8,6 +8,8 @@ using namespace std;
 
 #define GAMEPAD_AUX_MAX_TOUCHPADS 2
 
+#define GAMEPAD_AUX_MAX_POWER 100
+
 struct GamepadAuxColor
 {
     uint8_t alpha = 0;
@@ -110,6 +112,20 @@ struct GamepadAuxHapticChannel
     uint16_t intensity = 0;
 };
 
+struct GamepadAuxTurbo
+{
+    bool enabled = false;
+    bool active = false;
+    uint8_t activity = 0;
+};
+
+struct GamepadAuxPower
+{
+    bool charging = false;
+    bool pluggedIn = false;
+    uint8_t level = 0;
+};
+
 struct GamepadAuxSensors
 {
     GamepadAux3DRelativeSensor mouse;
@@ -142,4 +158,8 @@ struct GamepadAuxState
     GamepadAuxSensors sensors;
 
     GamepadAuxHaptics haptics;
+
+    GamepadAuxTurbo turbo;
+
+    GamepadAuxPower power;
 };

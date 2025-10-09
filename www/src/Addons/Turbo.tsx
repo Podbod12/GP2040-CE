@@ -1,14 +1,17 @@
-import React from 'react';
+import { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormCheck, Row } from 'react-bootstrap';
 import * as yup from 'yup';
 
+import { AppContext } from '../Contexts/AppContext';
 import Section from '../Components/Section';
 import FormSelect from '../Components/FormSelect';
 import FormControl from '../Components/FormControl';
 import AnalogPinOptions from '../Components/AnalogPinOptions';
 import { BUTTON_MASKS_OPTIONS } from '../Data/Buttons';
 import { DUAL_STICK_MODES } from '../Data/Addons';
+import { ANALOG_PINS } from '../Data/Buttons';
+import { AddonPropTypes } from '../Pages/AddonsConfigPage';
 
 const SHMUP_MIXED_MODES = [
 	{ label: 'Turbo Priority', value: 0 },
@@ -99,6 +102,12 @@ export const turboScheme = {
 		.number()
 		.label('Charge Shot Button 4 Map')
 		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS_OPTIONS),
+	turboLedType: yup.number().required().label('Turbo LED Type'),
+	turboLedIndex: yup
+		.number()
+		.label('Turbo LED Index')
+		.validateMinWhenEqualTo('turboLedType', 1, 0),
+	turboLedColor: yup.string().label('RGB Turbo LED').validateColor(),
 };
 
 export const turboState = {
@@ -120,27 +129,112 @@ export const turboState = {
 	TurboInputEnabled: 0,
 	turboPinLED: -1,
 	turboShotCount: 5,
+	turboLedType: 0,
+	turboLedIndex: 0,
+	turboLedColor: '#000000',
 };
 
-const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
+const Turbo = ({
+	values,
+	errors,
+	handleChange,
+	handleCheckbox,
+	setFieldValue,
+}: AddonPropTypes) => {
 	const { t } = useTranslation();
+
+	const { usedPins } = useContext(AppContext);
+	const availableAnalogPins = ANALOG_PINS.filter(
+		(pin) => !usedPins?.includes(pin),
+	);
+
 	return (
-		<Section title={t('AddonsConfig:turbo-header-text')}>
+		<Section
+			title={
+				<a
+					href="https://gp2040-ce.info/add-ons/turbo"
+					target="_blank"
+					className="text-reset text-decoration-none"
+				>
+					{t('AddonsConfig:turbo-header-text')}
+				</a>
+			}
+		>
 			<div id="TurboInputOptions" hidden={!values.TurboInputEnabled}>
+				<div className="alert alert-success" role="alert">
+					{t('AddonsConfig:turbo-available-pins-text', {
+						pins: availableAnalogPins.join(', '),
+					})}
+				</div>
 				<Row className="mb-3">
+					<FormSelect
+						label={t('AddonsConfig:turbo-led-type-label')}
+						name="turboLedType"
+						className="form-select-sm"
+						groupClassName="col-sm-2 mb-3"
+						value={values.turboLedType}
+						error={errors.turboLedType}
+						isInvalid={Boolean(errors.turboLedType)}
+						onChange={(e) =>
+							setFieldValue('turboLedType', parseInt(e.target.value))
+						}
+					>
+						<option value="-1">
+							{t('AddonsConfig:turbo-led-type-label-off')}
+						</option>
+						<option value="0">
+							{t('AddonsConfig:turbo-led-type-label-pwm')}
+						</option>
+						<option value="1">
+							{t('AddonsConfig:turbo-led-type-label-rgb')}
+						</option>
+					</FormSelect>
 					<FormControl
 						type="number"
 						label={t('AddonsConfig:turbo-led-pin-label')}
 						name="turboPinLED"
+						hidden={values.turboLedType !== 0}
 						className="form-select-sm"
 						groupClassName="col-sm-3 mb-3"
 						value={values.turboPinLED}
 						error={errors.turboPinLED}
-						isInvalid={errors.turboPinLED}
+						isInvalid={Boolean(errors.turboPinLED)}
 						onChange={handleChange}
 						min={-1}
 						max={29}
 					/>
+					<FormControl
+						type="number"
+						name="turboLedIndex"
+						hidden={values.turboLedType !== 1}
+						label={t('AddonsConfig:turbo-led-index-label')}
+						className="form-control-sm"
+						groupClassName="col-sm-2 mb-3"
+						value={values.turboLedIndex}
+						error={errors.turboLedIndex}
+						isInvalid={Boolean(errors.turboLedIndex)}
+						onChange={(e) =>
+							setFieldValue(
+								'turboLedIndex',
+								parseInt((e.target as HTMLInputElement).value),
+							)
+						}
+						min={0}
+					/>
+					<FormControl
+						type="color"
+						label={t('AddonsConfig:turbo-led-color-label')}
+						hidden={values.turboLedType !== 1}
+						name="turboLedColor"
+						className="form-control-sm"
+						groupClassName="col-sm-2 mb-3"
+						defaultValue={values.turboLedColor}
+						error={errors.turboLedColor}
+						isInvalid={Boolean(errors.turboLedColor)}
+						onBlur={(c) => setFieldValue('turboLedColor', c.target.value)}
+					/>
+				</Row>
+				<Row className="mb-3">
 					<FormControl
 						type="number"
 						label={t('AddonsConfig:turbo-shot-count-label')}
@@ -161,20 +255,22 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 						groupClassName="col-sm-3 mb-3"
 						value={values.pinShmupDial}
 						error={errors.pinShmupDial}
-						isInvalid={errors.pinShmupDial}
+						isInvalid={Boolean(errors.pinShmupDial)}
 						onChange={handleChange}
 					>
 						<AnalogPinOptions />
 					</FormSelect>
+				</Row>
+				<Row className="mb-3">
 					<FormCheck
 						label={t('AddonsConfig:turbo-shmup-mode-label')}
 						type="switch"
 						id="ShmupMode"
-						className="col-sm-3 ms-2"
+						className="col-sm-3 ms-3"
 						isInvalid={false}
 						checked={Boolean(values.shmupMode)}
 						onChange={(e) => {
-							handleCheckbox('shmupMode', values);
+							handleCheckbox('shmupMode');
 							handleChange(e);
 						}}
 					/>
@@ -187,7 +283,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 								groupClassName="col-sm-3 mb-3"
 								value={values.shmupAlwaysOn1}
 								error={errors.shmupAlwaysOn1}
-								isInvalid={errors.shmupAlwaysOn1}
+								isInvalid={Boolean(errors.shmupAlwaysOn1)}
 								onChange={handleChange}
 							>
 								{TURBO_MASKS.map((o, i) => (
@@ -203,7 +299,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 								groupClassName="col-sm-3 mb-3"
 								value={values.shmupAlwaysOn2}
 								error={errors.shmupAlwaysOn2}
-								isInvalid={errors.shmupAlwaysOn2}
+								isInvalid={Boolean(errors.shmupAlwaysOn2)}
 								onChange={handleChange}
 							>
 								{TURBO_MASKS.map((o, i) => (
@@ -219,7 +315,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 								groupClassName="col-sm-3 mb-3"
 								value={values.shmupAlwaysOn3}
 								error={errors.shmupAlwaysOn3}
-								isInvalid={errors.shmupAlwaysOn3}
+								isInvalid={Boolean(errors.shmupAlwaysOn3)}
 								onChange={handleChange}
 							>
 								{TURBO_MASKS.map((o, i) => (
@@ -235,7 +331,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 								groupClassName="col-sm-3 mb-3"
 								value={values.shmupAlwaysOn4}
 								error={errors.shmupAlwaysOn4}
-								isInvalid={errors.shmupAlwaysOn4}
+								isInvalid={Boolean(errors.shmupAlwaysOn4)}
 								onChange={handleChange}
 							>
 								{TURBO_MASKS.map((o, i) => (
@@ -254,7 +350,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 								groupClassName="col-sm-3 mb-3"
 								value={values.pinShmupBtn1}
 								error={errors.pinShmupBtn1}
-								isInvalid={errors.pinShmupBtn1}
+								isInvalid={Boolean(errors.pinShmupBtn1)}
 								onChange={handleChange}
 								min={-1}
 								max={29}
@@ -267,7 +363,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 								groupClassName="col-sm-3 mb-3"
 								value={values.pinShmupBtn2}
 								error={errors.pinShmupBtn2}
-								isInvalid={errors.pinShmupBtn2}
+								isInvalid={Boolean(errors.pinShmupBtn2)}
 								onChange={handleChange}
 								min={-1}
 								max={29}
@@ -280,7 +376,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 								groupClassName="col-sm-3 mb-3"
 								value={values.pinShmupBtn3}
 								error={errors.pinShmupBtn3}
-								isInvalid={errors.pinShmupBtn3}
+								isInvalid={Boolean(errors.pinShmupBtn3)}
 								onChange={handleChange}
 								min={-1}
 								max={29}
@@ -293,7 +389,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 								groupClassName="col-sm-3 mb-3"
 								value={values.pinShmupBtn4}
 								error={errors.pinShmupBtn4}
-								isInvalid={errors.pinShmupBtn4}
+								isInvalid={Boolean(errors.pinShmupBtn4)}
 								onChange={handleChange}
 								min={-1}
 								max={29}
@@ -307,7 +403,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 								groupClassName="col-sm-3 mb-3"
 								value={values.shmupBtnMask1}
 								error={errors.shmupBtnMask1}
-								isInvalid={errors.shmupBtnMask1}
+								isInvalid={Boolean(errors.shmupBtnMask1)}
 								onChange={handleChange}
 							>
 								{TURBO_MASKS.map((o, i) => (
@@ -323,7 +419,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 								groupClassName="col-sm-3 mb-3"
 								value={values.shmupBtnMask2}
 								error={errors.shmupBtnMask2}
-								isInvalid={errors.shmupBtnMask2}
+								isInvalid={Boolean(errors.shmupBtnMask2)}
 								onChange={handleChange}
 							>
 								{TURBO_MASKS.map((o, i) => (
@@ -339,7 +435,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 								groupClassName="col-sm-3 mb-3"
 								value={values.shmupBtnMask3}
 								error={errors.shmupBtnMask3}
-								isInvalid={errors.shmupBtnMask3}
+								isInvalid={Boolean(errors.shmupBtnMask3)}
 								onChange={handleChange}
 							>
 								{TURBO_MASKS.map((o, i) => (
@@ -355,7 +451,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 								groupClassName="col-sm-3 mb-3"
 								value={values.shmupBtnMask4}
 								error={errors.shmupBtnMask4}
-								isInvalid={errors.shmupBtnMask4}
+								isInvalid={Boolean(errors.shmupBtnMask4)}
 								onChange={handleChange}
 							>
 								{TURBO_MASKS.map((o, i) => (
@@ -372,7 +468,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 							groupClassName="col-sm-3 mb-3"
 							value={values.shmupMixMode}
 							error={errors.shmupMixMode}
-							isInvalid={errors.shmupMixMode}
+							isInvalid={Boolean(errors.shmupMixMode)}
 							onChange={handleChange}
 						>
 							{SHMUP_MIXED_MODES.map((o, i) => (
@@ -395,7 +491,7 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 				isInvalid={false}
 				checked={Boolean(values.TurboInputEnabled)}
 				onChange={(e) => {
-					handleCheckbox('TurboInputEnabled', values);
+					handleCheckbox('TurboInputEnabled');
 					handleChange(e);
 				}}
 			/>

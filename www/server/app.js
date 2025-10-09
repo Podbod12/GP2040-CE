@@ -18,8 +18,8 @@ const { pico: picoController } = JSON.parse(
 );
 
 // Structure pin mappings to include masks and profile label
-const createPinMappings = ({ profileLabel = 'Profile' }) => {
-	let pinMappings = { profileLabel, enabled: true };
+const createPinMappings = ({ profileLabel = 'Profile', enabled = true }) => {
+	let pinMappings = { profileLabel, enabled };
 
 	for (const [key, value] of Object.entries(picoController)) {
 		pinMappings[key] = {
@@ -56,6 +56,7 @@ app.get('/api/getDisplayOptions', (req, res) => {
 		invertDisplay: 1,
 		buttonLayout: 0,
 		buttonLayoutRight: 3,
+		buttonLayoutOrientation: 0,
 		splashMode: 3,
 		splashChoice: 0,
 		splashDuration: 0,
@@ -77,7 +78,18 @@ app.get('/api/getDisplayOptions', (req, res) => {
 		},
 
 		displaySaverTimeout: 0,
+		displaySaverMode: 0,
 		turnOffWhenSuspended: 0,
+		inputMode: 1,
+		turboMode: 1,
+		dpadMode: 1,
+		socdMode: 1,
+		macroMode: 1,
+		profileMode: 0,
+		inputHistoryEnabled: 0,
+		inputHistoryLength: 21,
+		inputHistoryCol: 0,
+		inputHistoryRow: 7,
 	};
 	console.log('data', data);
 	return res.send(data);
@@ -91,17 +103,79 @@ app.get('/api/getSplashImage', (req, res) => {
 	return res.send(data);
 });
 
+app.get('/api/getAnimationProtoOptions', (req, res) => {
+	return res.send({
+		AnimationOptions: {
+			brightness: 5,
+			idletimeout: 0,
+			baseProfileIndex: 0,
+			customColors: [255],
+			profiles: [
+				{
+					bEnabled: 1,
+					baseNonPressedEffect: 1,
+					basePressedEffect: 0,
+					buttonPressHoldTimeInMs: 500,
+					buttonPressFadeOutTimeInMs: 500,
+					nonPressedSpecialColor: 0xffff00,
+					bUseCaseLightsInSpecialMoves: 0,
+					bUseCaseLightsInPressedAnimations: 0,
+					baseCaseEffect: 0,
+					pressedSpecialColor: 0,
+					notPressedStaticColors: [
+						2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+						2, 2, 2, 2, 2, 2, 2, 2, 2,
+					],
+					pressedStaticColors: [
+						4, 6, 10, 12, 4, 6, 10, 12, 4, 6, 10, 12, 4, 6, 10, 12, 4, 6, 10,
+						12, 4, 6, 10, 12, 4, 6, 10, 12, 4, 6, 10, 12,
+					],
+					caseStaticColors: [
+						1, 5, 2, 1, 2, 9, 2, 2, 2, 2, 3, 2, 3, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2,
+						2, 9, 2, 5, 3, 2, 2, 7, 2, 2, 2, 11, 10, 4, 2, 2, 2,
+					],
+				},
+				{
+					bEnabled: 1,
+					baseNonPressedEffect: 0,
+					basePressedEffect: 3,
+					buttonPressHoldTimeInMs: 500,
+					buttonPressFadeOutTimeInMs: 500,
+					nonPressedSpecialColor: 255,
+					bUseCaseLightsInSpecialMoves: 1,
+					bUseCaseLightsInPressedAnimations: 1,
+					baseCaseEffect: 0,
+					pressedSpecialColor: 0x80ff00,
+					notPressedStaticColors: [
+						6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+						6, 6, 6, 6, 6, 6, 6, 6, 6,
+					],
+					pressedStaticColors: [
+						2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+						2, 2, 2, 2, 2, 2, 2, 2, 2,
+					],
+					caseStaticColors: [
+						13, 1, 1, 1, 13, 1, 1, 1, 13, 1, 1, 1, 13, 1, 1, 1, 13, 1, 1, 1, 13,
+						1, 1, 1, 13, 1, 1, 1, 13, 1, 1, 1, 13, 1, 1, 1, 13, 1, 1, 1,
+					],
+				},
+			],
+		},
+	});
+});
+
 app.get('/api/getGamepadOptions', (req, res) => {
 	return res.send({
 		dpadMode: 0,
 		inputMode: 4,
+		inputDeviceType: 0,
 		socdMode: 2,
 		switchTpShareForDs4: 0,
 		forcedSetupMode: 0,
 		lockHotkeys: 0,
 		fourWayMode: 0,
 		fnButtonPin: -1,
-		profileNumber: 1,
+		profileNumber: 2,
 		debounceDelay: 5,
 		inputModeB1: 1,
 		inputModeB2: 0,
@@ -115,6 +189,14 @@ app.get('/api/getGamepadOptions', (req, res) => {
 		ps5AuthType: 0,
 		xinputAuthType: 0,
 		ps4ControllerIDMode: 0,
+		usbDescOverride: 0,
+		usbDescProduct: 'GP2040-CE (Custom)',
+		usbDescManufacturer: 'Open Stick Community',
+		usbDescVersion: '1.0',
+		usbOverrideID: 0,
+		usbVendorID: '10C4',
+		usbProductID: '82C0',
+		miniMenuGamepadInput: 1,
 		hotkey01: {
 			auxMask: 32768,
 			buttonsMask: 66304,
@@ -200,69 +282,10 @@ app.get('/api/getGamepadOptions', (req, res) => {
 
 app.get('/api/getLedOptions', (req, res) => {
 	return res.send({
-		brightnessMaximum: 255,
-		brightnessSteps: 5,
 		dataPin: 22,
 		ledFormat: 0,
-		ledLayout: 1,
-		ledsPerButton: 2,
-		ledButtonMap: {
-			Up: 3,
-			Down: 1,
-			Left: 0,
-			Right: 2,
-			B1: 8,
-			B2: 9,
-			B3: 4,
-			B4: 5,
-			L1: 7,
-			R1: 6,
-			L2: 11,
-			R2: 10,
-			S1: null,
-			S2: null,
-			L3: null,
-			R3: null,
-			A1: null,
-			A2: null,
-		},
-		usedPins: Object.values(picoController),
-		pledType: 1,
-		pledPin1: 12,
-		pledPin2: 13,
-		pledPin3: 14,
-		pledPin4: 15,
-		pledIndex1: 12,
-		pledIndex2: 13,
-		pledIndex3: 14,
-		pledIndex4: 15,
-		pledColor: 65280,
 		turnOffWhenSuspended: 0,
-	});
-});
-
-app.get('/api/getCustomTheme', (req, res) => {
-	console.log('/api/getCustomTheme');
-	return res.send({
-		enabled: true,
-		Up: { u: 16711680, d: 255 },
-		Down: { u: 16711680, d: 255 },
-		Left: { u: 16711680, d: 255 },
-		Right: { u: 16711680, d: 255 },
-		B1: { u: 65280, d: 16711680 },
-		B2: { u: 65280, d: 16711680 },
-		B3: { u: 255, d: 65280 },
-		B4: { u: 255, d: 65280 },
-		L1: { u: 255, d: 65280 },
-		R1: { u: 255, d: 65280 },
-		L2: { u: 65280, d: 16711680 },
-		R2: { u: 65280, d: 16711680 },
-		S1: { u: 65535, d: 16776960 },
-		S2: { u: 65535, d: 16776960 },
-		L3: { u: 65416, d: 16746496 },
-		R3: { u: 65416, d: 16746496 },
-		A1: { u: 8913151, d: 65416 },
-		A2: { u: 8913151, d: 65416 },
+		brightnessMaximum: 50,
 	});
 });
 
@@ -389,7 +412,7 @@ app.get('/api/getProfileOptions', (req, res) => {
 	return res.send({
 		alternativePinMappings: [
 			createPinMappings({ profileLabel: 'Profile 2' }),
-			createPinMappings({ profileLabel: 'Profile 3' }),
+			createPinMappings({ profileLabel: 'Profile 3', enabled: false }),
 		],
 	});
 });
@@ -437,12 +460,19 @@ app.get('/api/getAddonsOptions', (req, res) => {
 		analogAdc2Mode: 2,
 		analogAdc2Invert: 0,
 		forced_circularity: 0,
+		forced_circularity2: 0,
 		inner_deadzone: 5,
+		inner_deadzone2: 5,
 		outer_deadzone: 95,
+		outer_deadzone2: 95,
 		auto_calibrate: 0,
+		auto_calibrate2: 0,
 		analog_smoothing: 0,
+		analog_smoothing2: 0,
 		smoothing_factor: 5,
+		smoothing_factor2: 5,
 		analog_error: 1000,
+		analog_error2: 1000,
 		bootselButtonMap: 0,
 		buzzerPin: -1,
 		buzzerEnablePin: -1,
@@ -456,7 +486,6 @@ app.get('/api/getAddonsOptions', (req, res) => {
 		focusModePin: -1,
 		focusModeButtonLockMask: 0,
 		focusModeButtonLockEnabled: 0,
-		playerNumber: 1,
 		shmupMode: 0,
 		shmupMixMode: 0,
 		shmupAlwaysOn1: 0,
@@ -472,6 +501,9 @@ app.get('/api/getAddonsOptions', (req, res) => {
 		shmupBtnMask3: 0,
 		shmupBtnMask4: 0,
 		pinShmupDial: -1,
+		turboLedType: 1,
+		turboLedIndex: 16,
+		turboLedColor: 16711680,
 		sliderSOCDModeDefault: 1,
 		snesPadClockPin: -1,
 		snesPadLatchPin: -1,
@@ -480,6 +512,8 @@ app.get('/api/getAddonsOptions', (req, res) => {
 		keyboardHostMouseLeft: 0,
 		keyboardHostMouseMiddle: 0,
 		keyboardHostMouseRight: 0,
+		keyboardHostMouseSensitivity: 50,
+		keyboardHostMouseMovement: 0,
 		AnalogInputEnabled: 1,
 		BoardLedAddonEnabled: 1,
 		FocusModeAddonEnabled: 1,
@@ -496,10 +530,6 @@ app.get('/api/getAddonsOptions', (req, res) => {
 		TurboInputEnabled: 1,
 		WiiExtensionAddonEnabled: 1,
 		SNESpadAddonEnabled: 1,
-		InputHistoryAddonEnabled: 1,
-		inputHistoryLength: 21,
-		inputHistoryCol: 0,
-		inputHistoryRow: 7,
 		Analog1256Enabled: 1,
 		analog1256Block: 0,
 		analog1256CsPin: -1,
@@ -522,11 +552,166 @@ app.get('/api/getAddonsOptions', (req, res) => {
 		encoderTwoResetAfter: 0,
 		encoderTwoAllowWrapAround: false,
 		encoderTwoMultiplier: 1,
+		muxChannels: 8,
+		muxADCPin0: 26,
+		muxADCPin1: 27,
+		muxADCPin2: 28,
+		muxADCPin3: -1,
+		muxSelectPin0: 0,
+		muxSelectPin1: 1,
+		muxSelectPin2: 2,
+		muxSelectPin3: -1,
 		RotaryAddonEnabled: 1,
 		PCF8575AddonEnabled: 1,
 		DRV8833RumbleAddonEnabled: 1,
 		ReactiveLEDAddonEnabled: 1,
+		GamepadUSBHostAddonEnabled: 1,
+		tg16PadOePin: -1,
+		tg16PadSelectPin: -1,
+		tg16PadDataPin0: -1,
+		tg16PadDataPin1: -1,
+		tg16PadDataPin2: -1,
+		tg16PadDataPin3: -1,
+		TG16padAddonEnabled: 1,
+		HETriggerEnabled: 1,
 		usedPins: Object.values(picoController),
+	});
+});
+
+app.get('/api/getLightsDataOptions', (req, res) => {
+	return res.send({
+		LightData: {
+			Lights: [
+				{
+					firstLedIndex: 0,
+					numLedsOnLight: 1,
+					xCoord: 0,
+					yCoord: 2,
+					GPIOPinorCaseChainIndex: 5,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 1,
+					numLedsOnLight: 1,
+					xCoord: 2,
+					yCoord: 2,
+					GPIOPinorCaseChainIndex: 3,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 2,
+					numLedsOnLight: 1,
+					xCoord: 4,
+					yCoord: 3,
+					GPIOPinorCaseChainIndex: 4,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 3,
+					numLedsOnLight: 1,
+					xCoord: 6,
+					yCoord: 7,
+					GPIOPinorCaseChainIndex: 2,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 4,
+					numLedsOnLight: 1,
+					xCoord: 6,
+					yCoord: 2,
+					GPIOPinorCaseChainIndex: 10,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 5,
+					numLedsOnLight: 1,
+					xCoord: 8,
+					yCoord: 1,
+					GPIOPinorCaseChainIndex: 11,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 6,
+					numLedsOnLight: 1,
+					xCoord: 10,
+					yCoord: 1,
+					GPIOPinorCaseChainIndex: 12,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 7,
+					numLedsOnLight: 1,
+					xCoord: 12,
+					yCoord: 1,
+					GPIOPinorCaseChainIndex: 13,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 8,
+					numLedsOnLight: 1,
+					xCoord: 6,
+					yCoord: 4,
+					GPIOPinorCaseChainIndex: 6,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 9,
+					numLedsOnLight: 1,
+					xCoord: 8,
+					yCoord: 3,
+					GPIOPinorCaseChainIndex: 7,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 10,
+					numLedsOnLight: 1,
+					xCoord: 10,
+					yCoord: 3,
+					GPIOPinorCaseChainIndex: 8,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 11,
+					numLedsOnLight: 1,
+					xCoord: 12,
+					yCoord: 3,
+					GPIOPinorCaseChainIndex: 9,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 12,
+					numLedsOnLight: 1,
+					xCoord: 3,
+					yCoord: 0,
+					GPIOPinorCaseChainIndex: 27,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 13,
+					numLedsOnLight: 1,
+					xCoord: 6,
+					yCoord: 0,
+					GPIOPinorCaseChainIndex: 18,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 14,
+					numLedsOnLight: 1,
+					xCoord: 8,
+					yCoord: 5,
+					GPIOPinorCaseChainIndex: 19,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 15,
+					numLedsOnLight: 1,
+					xCoord: 3,
+					yCoord: 6,
+					GPIOPinorCaseChainIndex: 26,
+					lightType: 0,
+				},
+			],
+		},
 	});
 });
 
@@ -555,6 +740,21 @@ app.get('/api/getExpansionPins', (req, res) => {
 			],
 		},
 	});
+});
+
+app.get('/api/getHETriggerOptions', (req, res) => {
+	var triggers = [];
+	triggers.push({ action: 2, idle: 120, max: 3500, active: 1500, polarity: 0 });
+	for(var i = 1; i < 32; i++) {
+		triggers.push({
+			action: -10,
+			idle: 100,
+			active: 2000,
+			max: 3500,
+			polarity: 0
+		});
+	}
+	return res.send({triggers});
 });
 
 app.get('/api/getMacroAddonOptions', (req, res) => {
@@ -648,21 +848,195 @@ app.get('/api/getFirmwareVersion', (req, res) => {
 	});
 });
 
-app.get('/api/getButtonLayoutCustomOptions', (req, res) => {
+app.get('/api/getButtonLayouts', (req, res) => {
 	return res.send({
-		params: {
-			layout: 2,
-			startX: 8,
-			startY: 28,
-			buttonRadius: 8,
-			buttonPadding: 2,
-		},
-		paramsRight: {
-			layout: 9,
-			startX: 8,
-			startY: 28,
-			buttonRadius: 8,
-			buttonPadding: 2,
+		displayLayouts: {
+			buttonLayoutId: 27,
+			buttonLayout: {
+				0: {
+					elementType: 4,
+					parameters: {
+						x1: 8,
+						y1: 20,
+						x2: 8,
+						y2: 8,
+						stroke: 1,
+						fill: 1,
+						value: 5,
+						shape: 0,
+						angleStart: 0,
+						angleEnd: 0,
+					},
+				},
+				1: {
+					elementType: 4,
+					parameters: {
+						x1: 26,
+						y1: 20,
+						x2: 8,
+						y2: 8,
+						stroke: 1,
+						fill: 1,
+						value: 3,
+						shape: 0,
+						angleStart: 0,
+						angleEnd: 0,
+					},
+				},
+				2: {
+					elementType: 4,
+					parameters: {
+						x1: 41,
+						y1: 29,
+						x2: 8,
+						y2: 8,
+						stroke: 1,
+						fill: 1,
+						value: 4,
+						shape: 0,
+						angleStart: 0,
+						angleEnd: 0,
+					},
+				},
+				3: {
+					elementType: 4,
+					parameters: {
+						x1: 48,
+						y1: 53,
+						x2: 8,
+						y2: 8,
+						stroke: 1,
+						fill: 1,
+						value: 2,
+						shape: 0,
+						angleStart: 0,
+						angleEnd: 0,
+					},
+				},
+			},
+			buttonLayoutRightId: 31,
+			buttonLayoutRight: {
+				0: {
+					elementType: 4,
+					parameters: {
+						x1: 57,
+						y1: 20,
+						x2: 8,
+						y2: 8,
+						stroke: 1,
+						fill: 1,
+						value: 10,
+						shape: 0,
+						angleStart: 0,
+						angleEnd: 0,
+					},
+				},
+				1: {
+					elementType: 4,
+					parameters: {
+						x1: 75,
+						y1: 16,
+						x2: 8,
+						y2: 8,
+						stroke: 1,
+						fill: 1,
+						value: 11,
+						shape: 0,
+						angleStart: 0,
+						angleEnd: 0,
+					},
+				},
+				2: {
+					elementType: 4,
+					parameters: {
+						x1: 93,
+						y1: 16,
+						x2: 8,
+						y2: 8,
+						stroke: 1,
+						fill: 1,
+						value: 12,
+						shape: 0,
+						angleStart: 0,
+						angleEnd: 0,
+					},
+				},
+				3: {
+					elementType: 4,
+					parameters: {
+						x1: 111,
+						y1: 20,
+						x2: 8,
+						y2: 8,
+						stroke: 1,
+						fill: 1,
+						value: 13,
+						shape: 0,
+						angleStart: 0,
+						angleEnd: 0,
+					},
+				},
+				4: {
+					elementType: 4,
+					parameters: {
+						x1: 57,
+						y1: 38,
+						x2: 8,
+						y2: 8,
+						stroke: 1,
+						fill: 1,
+						value: 6,
+						shape: 0,
+						angleStart: 0,
+						angleEnd: 0,
+					},
+				},
+				5: {
+					elementType: 4,
+					parameters: {
+						x1: 75,
+						y1: 34,
+						x2: 8,
+						y2: 8,
+						stroke: 1,
+						fill: 1,
+						value: 7,
+						shape: 0,
+						angleStart: 0,
+						angleEnd: 0,
+					},
+				},
+				6: {
+					elementType: 4,
+					parameters: {
+						x1: 93,
+						y1: 34,
+						x2: 8,
+						y2: 8,
+						stroke: 1,
+						fill: 1,
+						value: 8,
+						shape: 0,
+						angleStart: 0,
+						angleEnd: 0,
+					},
+				},
+				7: {
+					elementType: 4,
+					parameters: {
+						x1: 111,
+						y1: 38,
+						x2: 8,
+						y2: 8,
+						stroke: 1,
+						fill: 1,
+						value: 9,
+						shape: 0,
+						angleStart: 0,
+						angleEnd: 0,
+					},
+				},
+			},
 		},
 	});
 });
@@ -789,6 +1163,13 @@ app.get('/api/getHeldPins', async (req, res) => {
 
 app.get('/api/abortGetHeldPins', async (req, res) => {
 	return res.send();
+});
+
+app.post('/api/getHETriggerCalibration', (req, res) => {
+	return res.send({
+		voltage: 0.0,
+		debug: true
+	});
 });
 
 app.post('/api/*', (req, res) => {

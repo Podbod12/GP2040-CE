@@ -25,10 +25,6 @@ GP2040Aux::~GP2040Aux() {
 // GP2040Aux will always come after GP2040 setup(), so we can rely on the
 // GP2040 setup function for certain setup functions.
 void GP2040Aux::setup() {
-	PeripheralManager::getInstance().initI2C();
-	PeripheralManager::getInstance().initSPI();
-	PeripheralManager::getInstance().initUSB();
-
 	// Initialize our input driver's auxilliary functions
 	inputDriver = DriverManager::getInstance().getDriver();
 	if ( inputDriver != nullptr ) {
@@ -42,14 +38,13 @@ void GP2040Aux::setup() {
 	}
 
 	// Setup Add-ons
-	addons.LoadAddon(new DisplayAddon(), CORE1_LOOP);
-	addons.LoadAddon(new NeoPicoLEDAddon(), CORE1_LOOP);
-	addons.LoadAddon(new PlayerLEDAddon(), CORE1_LOOP);
-	addons.LoadAddon(new BoardLedAddon(), CORE1_LOOP);
-	addons.LoadAddon(new BuzzerSpeakerAddon(), CORE1_LOOP);
-
-	// Initialize our USB manager
-	USBHostManager::getInstance().start();
+	addons.LoadAddon(new DisplayAddon());
+	addons.LoadAddon(new NeoPicoLEDAddon());
+	addons.LoadAddon(new PlayerLEDAddon());
+	addons.LoadAddon(new BoardLedAddon());
+	addons.LoadAddon(new BuzzerSpeakerAddon());
+	addons.LoadAddon(new DRV8833RumbleAddon());
+	addons.LoadAddon(new ReactiveLEDAddon());
 
 	// Ready to sync Core0 and Core1
 	isReady = true;
@@ -57,7 +52,9 @@ void GP2040Aux::setup() {
 
 void GP2040Aux::run() {
 	while (1) {
-		addons.ProcessAddons(CORE1_LOOP);
+		// Pre, Process, and Post
+		addons.PreprocessAddons();
+		addons.ProcessAddons();
 
 		// Run auxiliary functions for input driver on Core1
 		if ( inputDriver != nullptr ) {

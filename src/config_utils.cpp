@@ -21,7 +21,6 @@
 #include "addons/display.h"
 #include "addons/keyboard_host.h"
 #include "addons/neopicoleds.h"
-#include "addons/playernum.h"
 #include "addons/pleds.h"
 #include "addons/reactiveleds.h"
 #include "addons/reverse.h"
@@ -34,10 +33,13 @@
 #include "addons/rotaryencoder.h"
 #include "addons/i2c_gpio_pcf8575.h"
 #include "addons/drv8833_rumble.h"
+#include "addons/gamepad_usb_host.h"
+#include "addons/he_trigger.h"
+#include "addons/tg16_input.h"
 
 #include "CRC32.h"
 #include "FlashPROM.h"
-#include "configs/base64.h"
+#include "base64.h"
 
 #include <ArduinoJson.h>
 
@@ -144,6 +146,38 @@
     #define DEFAULT_PS4_ID_MODE PS4_ID_CONSOLE
 #endif
 
+#ifndef DEFAULT_USB_DESC_OVERRIDE
+   #define DEFAULT_USB_DESC_OVERRIDE false
+#endif
+
+#ifndef DEFAULT_USB_DESC_PRODUCT
+   #define DEFAULT_USB_DESC_PRODUCT "GP2040-CE (Custom)"
+#endif
+
+#ifndef DEFAULT_USB_DESC_MANUFACTURER
+   #define DEFAULT_USB_DESC_MANUFACTURER "Open Stick Community"
+#endif
+
+#ifndef DEFAULT_USB_DESC_VERSION
+   #define DEFAULT_USB_DESC_VERSION "1.0"
+#endif
+
+#ifndef DEFAULT_USB_ID_OVERRIDE
+   #define DEFAULT_USB_ID_OVERRIDE false
+#endif
+
+#ifndef DEFAULT_USB_VENDOR_ID
+   #define DEFAULT_USB_VENDOR_ID 0x10C4
+#endif
+
+#ifndef DEFAULT_USB_PRODUCT_ID
+   #define DEFAULT_USB_PRODUCT_ID 0x82C0
+#endif
+
+#ifndef MINI_MENU_GAMEPAD_INPUT
+   #define MINI_MENU_GAMEPAD_INPUT 0
+#endif
+
 #ifndef GPIO_PIN_00
     #define GPIO_PIN_00 GpioAction::NONE
 #endif
@@ -235,6 +269,8 @@
     #define GPIO_PIN_29 GpioAction::NONE
 #endif
 
+#define MAX_PROFILES (uint8_t)6
+
 // -----------------------------------------------------
 // Migration leftovers
 // -----------------------------------------------------
@@ -276,6 +312,14 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.gamepadOptions, ps5AuthType, DEFAULT_PS5AUTHENTICATION_TYPE);
     INIT_UNSET_PROPERTY(config.gamepadOptions, xinputAuthType, DEFAULT_XINPUTAUTHENTICATION_TYPE);
     INIT_UNSET_PROPERTY(config.gamepadOptions, ps4ControllerIDMode, DEFAULT_PS4_ID_MODE);
+    INIT_UNSET_PROPERTY(config.gamepadOptions, usbDescOverride, DEFAULT_USB_DESC_OVERRIDE);
+    INIT_UNSET_PROPERTY_STR(config.gamepadOptions, usbDescProduct, DEFAULT_USB_DESC_PRODUCT);
+    INIT_UNSET_PROPERTY_STR(config.gamepadOptions, usbDescManufacturer, DEFAULT_USB_DESC_MANUFACTURER);
+    INIT_UNSET_PROPERTY_STR(config.gamepadOptions, usbDescVersion, DEFAULT_USB_DESC_VERSION);
+    INIT_UNSET_PROPERTY(config.gamepadOptions, usbOverrideID, DEFAULT_USB_ID_OVERRIDE);
+    INIT_UNSET_PROPERTY(config.gamepadOptions, usbVendorID, DEFAULT_USB_VENDOR_ID);
+    INIT_UNSET_PROPERTY(config.gamepadOptions, usbProductID, DEFAULT_USB_PRODUCT_ID);
+    INIT_UNSET_PROPERTY(config.gamepadOptions, miniMenuGamepadInput, MINI_MENU_GAMEPAD_INPUT);
 
     // hotkeyOptions
     HotkeyOptions& hotkeyOptions = config.hotkeyOptions;
@@ -377,6 +421,16 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.displayOptions, buttonLayout, BUTTON_LAYOUT);
     INIT_UNSET_PROPERTY(config.displayOptions, buttonLayoutRight, BUTTON_LAYOUT_RIGHT);
     INIT_UNSET_PROPERTY(config.displayOptions, turnOffWhenSuspended, DISPLAY_TURN_OFF_WHEN_SUSPENDED);
+    INIT_UNSET_PROPERTY(config.displayOptions, inputMode, 1);
+    INIT_UNSET_PROPERTY(config.displayOptions, turboMode, 1);
+    INIT_UNSET_PROPERTY(config.displayOptions, dpadMode, 1);
+    INIT_UNSET_PROPERTY(config.displayOptions, socdMode, 1);
+    INIT_UNSET_PROPERTY(config.displayOptions, macroMode, 1);
+    INIT_UNSET_PROPERTY(config.displayOptions, profileMode, 0);
+    INIT_UNSET_PROPERTY(config.displayOptions, inputHistoryEnabled, !!INPUT_HISTORY_ENABLED);
+    INIT_UNSET_PROPERTY(config.displayOptions, inputHistoryLength, INPUT_HISTORY_LENGTH);
+    INIT_UNSET_PROPERTY(config.displayOptions, inputHistoryCol, INPUT_HISTORY_COL);
+    INIT_UNSET_PROPERTY(config.displayOptions, inputHistoryRow, INPUT_HISTORY_ROW);
 
     ButtonLayoutParamsLeft& paramsLeft = config.displayOptions.buttonLayoutCustomOptions.paramsLeft;
     INIT_UNSET_PROPERTY(paramsLeft, layout, BUTTON_LAYOUT);
@@ -401,6 +455,8 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.displayOptions, flip, DISPLAY_FLIP);
     INIT_UNSET_PROPERTY(config.displayOptions, invert, !!DISPLAY_INVERT);
     INIT_UNSET_PROPERTY(config.displayOptions, displaySaverTimeout, DISPLAY_SAVER_TIMEOUT);
+    INIT_UNSET_PROPERTY(config.displayOptions, displaySaverMode, DISPLAY_SAVER_MODE);
+    INIT_UNSET_PROPERTY(config.displayOptions, buttonLayoutOrientation, DISPLAY_LAYOUT_ORIENTATION);
 
     // peripheralOptions
     PeripheralOptions& peripheralOptions = config.peripheralOptions;
@@ -435,7 +491,6 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.ledOptions, ledLayout, BUTTON_LAYOUT);
     INIT_UNSET_PROPERTY(config.ledOptions, ledsPerButton, LEDS_PER_PIXEL);
     INIT_UNSET_PROPERTY(config.ledOptions, brightnessMaximum, LED_BRIGHTNESS_MAXIMUM);
-    INIT_UNSET_PROPERTY(config.ledOptions, brightnessSteps, LED_BRIGHTNESS_STEPS);
     INIT_UNSET_PROPERTY(config.ledOptions, turnOffWhenSuspended, LEDS_TURN_OFF_WHEN_SUSPENDED);
 
     INIT_UNSET_PROPERTY(config.ledOptions, indexUp, LEDS_DPAD_UP);
@@ -472,100 +527,62 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.ledOptions, pledIndex4, PLED4_PIN);
     // lightEntries
     INIT_UNSET_PROPERTY(config.ledOptions, lightDataSize, LIGHT_DATA_SIZE);
- 	const unsigned char lightData[] = { LIGHT_DATA };
+    const unsigned char lightData[] = { LIGHT_DATA };
     INIT_UNSET_PROPERTY_BYTES(config.ledOptions, lightData, lightData);
 
     //SpecialMoveOptions
-    INIT_UNSET_PROPERTY(config.specialMoveOptions, ChargeTimeInMs, 750);
-    INIT_UNSET_PROPERTY(config.specialMoveOptions, CurrentProfileIndex, 0);
+    //INIT_UNSET_PROPERTY(config.specialMoveOptions, ChargeTimeInMs, 750);
+    //INIT_UNSET_PROPERTY(config.specialMoveOptions, CurrentProfileIndex, 0);
  
     // animationOptions
-    INIT_UNSET_PROPERTY(config.animationOptions, brightness, LEDS_BRIGHTNESS);
+    if(LEDS_BRIGHTNESS >= 0 && LEDS_BRIGHTNESS <= config.ledOptions.brightnessSteps)
+    {
+        INIT_UNSET_PROPERTY(config.animationOptions, brightness, LEDS_BRIGHTNESS);
+    }
+    else
+    {
+        INIT_UNSET_PROPERTY(config.animationOptions, brightness, config.ledOptions.brightnessSteps);
+    }
     INIT_UNSET_PROPERTY(config.animationOptions, baseProfileIndex, 0);
-    
+    INIT_UNSET_PROPERTY(config.animationOptions, autoDisableTime, 5000);
+
+    //Default to rainbow rotate if a fresh settings
+    if(config.animationOptions.profiles[0].has_bEnabled == false)
+    {
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[0], bEnabled, 1);
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[0], basePressedCycleTime, 100);
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[0], baseCycleTime, 100);
+        config.animationOptions.profiles_count = 1;
+        config.animationOptions.profiles[0].notPressedStaticColors_count = (NUM_BANK0_GPIOS/4)+1;
+        config.animationOptions.profiles[0].pressedStaticColors_count = 0;
+        for (unsigned int lightIndex = 0; lightIndex < (NUM_BANK0_GPIOS/4)+1; ++lightIndex) 
+        {
+            config.animationOptions.profiles[0].notPressedStaticColors[lightIndex] = 0; //Black
+            config.animationOptions.profiles[0].pressedStaticColors[lightIndex] = 0; //Black
+        }
+        config.animationOptions.profiles[0].caseStaticColors_count = 0;
+        config.animationOptions.profiles[0].baseNonPressedEffect = AnimationNonPressedEffects::AnimationNonPressedEffects_EFFECT_RAINBOW_ROTATE;
+        config.animationOptions.profiles[0].basePressedEffect = AnimationPressedEffects::AnimationPressedEffects_PRESSEDEFFECT_STATIC_COLOR;
+        config.animationOptions.profiles[0].baseCaseEffect = AnimationNonPressedEffects::AnimationNonPressedEffects_EFFECT_RAINBOW_ROTATE;
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[0], bUseCaseLightsInPressedAnimations, 1);   
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[0], bUseCaseLightsInSpecialMoves, 1);   
+    }
+
+    //Since we force a profile 0 on new settings we only need to now force disable profiles 1 to max
+    for (unsigned int profileIndex = 1; profileIndex < MAX_ANIMATION_PROFILES; ++profileIndex) 
+    {
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], bEnabled, 0);
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], basePressedCycleTime, 0);
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], baseCycleTime, 0);
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], bUseCaseLightsInPressedAnimations, 0);   
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], bUseCaseLightsInSpecialMoves, 0);   
+    }
+     
     //TESTING
-    config.animationOptions.customColors_count = 1;
-    config.animationOptions.customColors[0] = 255;
-    config.specialMoveOptions.profiles_count = 0;
-    config.animationOptions.profiles_count = 0;
-    if(true)
+    if(false)
     { 
-        config.specialMoveOptions.profiles_count = 3;
-
-        config.specialMoveOptions.profiles[0].bEnabled = true;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves_count = 2;
-        strncpy(config.specialMoveOptions.profiles[0].Label, "Ryu", sizeof(config.specialMoveOptions.profiles[0].Label) - 1);
-
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[0].bIsChargeMove = false;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[0].Animation = SpecialMoveEffects_Proto::SpecialMoveEffects_Proto_SMEFFECT_WAVE;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[0].Priority = 0;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[0].RequiredInputCombos_count = 1;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[0].RequiredInputCombos[0] = SpecialMoveInputTypes_Proto::SpecialMoveInputTypes_Proto_INPUT_QUARTER_DOWN_LEFT;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[0].RequiredTriggerCombos_count = 3;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[0].RequiredTriggerCombos[0].RequiredTriggers = GAMEPAD_MASK_B3;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[0].RequiredTriggerCombos[0].OptionalParams = 1 + (1 << 4) + (1 << 8) + (0 << 12) + (14 << 16); //Left //slow //1 loop //all lights //colour custom 1
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[0].RequiredTriggerCombos[1].RequiredTriggers = GAMEPAD_MASK_B4;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[0].RequiredTriggerCombos[1].OptionalParams = 1 + (2 << 4) + (1 << 8) + (0 << 12) + (9 << 16); //Left //medium //1 loop //all lights //colour skyblue
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[0].RequiredTriggerCombos[2].RequiredTriggers = GAMEPAD_MASK_R1;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[0].RequiredTriggerCombos[2].OptionalParams = 1 + (3 << 4) + (1 << 8) + (0 << 12) + (9 << 16); //Left //fast //1 loop //all lights //colour skyblue
-        
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[1].bIsChargeMove = false;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[1].Animation = SpecialMoveEffects_Proto::SpecialMoveEffects_Proto_SMEFFECT_WAVE;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[1].Priority = 0;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[1].RequiredInputCombos_count = 1;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[1].RequiredInputCombos[0] = SpecialMoveInputTypes_Proto::SpecialMoveInputTypes_Proto_INPUT_QUARTER_DOWN_RIGHT;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[1].RequiredTriggerCombos_count = 3;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[1].RequiredTriggerCombos[0].RequiredTriggers = GAMEPAD_MASK_B3;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[1].RequiredTriggerCombos[0].OptionalParams = 2 + (1 << 4) + (1 << 8) + (0 << 12) + (9 << 16); //right //slow //1 loop //all lights //colour skyblue
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[1].RequiredTriggerCombos[1].RequiredTriggers = GAMEPAD_MASK_B4;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[1].RequiredTriggerCombos[1].OptionalParams = 2 + (2 << 4) + (1 << 8) + (0 << 12) + (9 << 16); //right //medium //1 loop //all lights //colour skyblue
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[1].RequiredTriggerCombos[2].RequiredTriggers = GAMEPAD_MASK_R1;
-        config.specialMoveOptions.profiles[0].AllSpecialMoves[1].RequiredTriggerCombos[2].OptionalParams = 2 + (3 << 4) + (1 << 8) + (0 << 12) + (9 << 16); //right //fast //1 loop //all lights //colour skyblue
-
-
-        config.specialMoveOptions.profiles[1].bEnabled = true;
-        config.specialMoveOptions.profiles[1].AllSpecialMoves_count = 1;
-        strncpy(config.specialMoveOptions.profiles[1].Label, "Ken Masters", sizeof(config.specialMoveOptions.profiles[1].Label) - 1);
-
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].bIsChargeMove = false;
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].Animation = SpecialMoveEffects_Proto::SpecialMoveEffects_Proto_SMEFFECT_WAVE;
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].Priority = 0;
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].RequiredInputCombos_count = 2;
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].RequiredInputCombos[0] = SpecialMoveInputTypes_Proto::SpecialMoveInputTypes_Proto_INPUT_DP_LEFT;
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].RequiredInputCombos[1] = SpecialMoveInputTypes_Proto::SpecialMoveInputTypes_Proto_INPUT_DP_RIGHT;
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].RequiredTriggerCombos_count = 3;
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].RequiredTriggerCombos[0].RequiredTriggers = GAMEPAD_MASK_B3;
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].RequiredTriggerCombos[0].OptionalParams = 0 + (3 << 4) + (1 << 8) + (0 << 12) + (1 << 16); //up //fast //1 loop //all lights //colour white
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].RequiredTriggerCombos[1].RequiredTriggers = GAMEPAD_MASK_B4;
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].RequiredTriggerCombos[1].OptionalParams = 0 + (2 << 4) + (1 << 8) + (0 << 12) + (1 << 16); //up //medium //1 loop //all lights //colour white
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].RequiredTriggerCombos[2].RequiredTriggers = GAMEPAD_MASK_R1;
-        config.specialMoveOptions.profiles[1].AllSpecialMoves[0].RequiredTriggerCombos[2].OptionalParams = 0 + (1 << 4) + (1 << 8) + (0 << 12) + (1 << 16); //up //slow //1 loop //all lights //colour white
-
-        config.specialMoveOptions.profiles[2].bEnabled = true;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves_count = 2;
-        strncpy(config.specialMoveOptions.profiles[2].Label, "Gief", sizeof(config.specialMoveOptions.profiles[1].Label) - 1);
-
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[0].bIsChargeMove = false;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[0].Animation = SpecialMoveEffects_Proto::SpecialMoveEffects_Proto_SMEFFECT_KNIGHTRIDER;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[0].Priority = 0;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[0].RequiredInputCombos_count = 1;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[0].RequiredInputCombos[0] = SpecialMoveInputTypes_Proto::SpecialMoveInputTypes_Proto_INPUT_NONE;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[0].RequiredTriggerCombos_count = 2;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[0].RequiredTriggerCombos[0].RequiredTriggers = GAMEPAD_MASK_B3 | GAMEPAD_MASK_B4;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[0].RequiredTriggerCombos[0].OptionalParams = 2 + (2 << 4) + (1 << 8) + (1 << 12) + (2 << 16); //Left //slow //1 loop //top lights //colour Red
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[0].RequiredTriggerCombos[1].RequiredTriggers = GAMEPAD_MASK_B4 | GAMEPAD_MASK_R1; 
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[0].RequiredTriggerCombos[1].OptionalParams = 2 + (3 << 4) + (1 << 8) + (1 << 12) + (2 << 16); //Left //medium //1 loop //top lights //colour Red
-
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[1].bIsChargeMove = false;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[1].Animation = SpecialMoveEffects_Proto::SpecialMoveEffects_Proto_SMEFFECT_KNIGHTRIDER;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[1].Priority = 1;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[1].RequiredInputCombos_count = 1;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[1].RequiredInputCombos[0] = SpecialMoveInputTypes_Proto::SpecialMoveInputTypes_Proto_INPUT_NONE;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[1].RequiredTriggerCombos_count = 1;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[1].RequiredTriggerCombos[0].RequiredTriggers = GAMEPAD_MASK_B3 | GAMEPAD_MASK_B4 | GAMEPAD_MASK_R1;
-        config.specialMoveOptions.profiles[2].AllSpecialMoves[1].RequiredTriggerCombos[0].OptionalParams = 2 + (4 << 4) + (2 << 8) + (1 << 12) + (4 << 16); //Left //fast //1 loop //top lights //colour Yellow
-
-
+        config.animationOptions.customColors_count = 1;
+        config.animationOptions.customColors[0] = 255;
         config.animationOptions.profiles_count = 2;
 
         config.animationOptions.profiles[0].bEnabled = true;
@@ -573,16 +590,22 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
         config.animationOptions.profiles[0].pressedStaticColors_count = (NUM_BANK0_GPIOS/4)+1;
         for (unsigned int lightIndex = 0; lightIndex < (NUM_BANK0_GPIOS/4)+1; ++lightIndex) 
         {
-            config.animationOptions.profiles[0].notPressedStaticColors[lightIndex] = 0; //Black
-            config.animationOptions.profiles[0].pressedStaticColors[lightIndex] = 0; //Black
+            config.animationOptions.profiles[0].notPressedStaticColors[lightIndex] = 2 + (2<<8) + (2<<16) + (2<<24); //Red
+            config.animationOptions.profiles[0].pressedStaticColors[lightIndex] = 4 + (6<<8) + (10<<16) + (12<<24); //Black
         }
-        config.animationOptions.profiles[0].baseNonPressedEffect = AnimationNonPressedEffects_Proto::AnimationNonPressedEffects_Proto_EFFECT_RAINBOW_SYNCED;
-        config.animationOptions.profiles[0].basePressedEffect = AnimationPressedEffects_Proto::AnimationPressedEffects_Proto_EFFECT_HELD_STATIC_COLOR;
-        config.animationOptions.profiles[0].baseCycleTime = 1;
+        config.animationOptions.profiles[0].baseNonPressedEffect = AnimationNonPressedEffects::AnimationNonPressedEffects_EFFECT_STATIC_COLOR;
+        config.animationOptions.profiles[0].basePressedEffect = AnimationPressedEffects::AnimationPressedEffects_PRESSEDEFFECT_BURST_SMALL;
+        config.animationOptions.profiles[0].baseCaseEffect = AnimationNonPressedEffects::AnimationNonPressedEffects_EFFECT_STATIC_COLOR;
         config.animationOptions.profiles[0].buttonPressHoldTimeInMs = 500;
         config.animationOptions.profiles[0].buttonPressFadeOutTimeInMs = 500;
-        config.animationOptions.profiles[0].nonPressedSpecialColour = 255 << 16; //RED
+        config.animationOptions.profiles[0].nonPressedSpecialColor = (128 << 16) + 255; //MAGENTA
         config.animationOptions.profiles[0].bUseCaseLightsInSpecialMoves = false;
+        config.animationOptions.profiles[0].bUseCaseLightsInPressedAnimations = false;
+        config.animationOptions.profiles[0].caseStaticColors_count = MAX_CASE_LIGHTS/4;
+        for (unsigned int caseLightIndex = 0; caseLightIndex < MAX_CASE_LIGHTS/4; ++caseLightIndex) 
+        {
+            config.animationOptions.profiles[0].caseStaticColors[caseLightIndex] = 2 + (2<<8) + (2<<16) + (2<<24); //Red
+        }
 
         config.animationOptions.profiles[1].bEnabled = true;
         config.animationOptions.profiles[1].notPressedStaticColors_count = (NUM_BANK0_GPIOS/4)+1;
@@ -598,14 +621,15 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
             config.animationOptions.profiles[1].caseStaticColors[caseLightIndex] = 14 + (1<<8) + (1<<16) + (1<<24); //custom 1, white, white, white
         }
 
-        config.animationOptions.profiles[1].baseNonPressedEffect = AnimationNonPressedEffects_Proto::AnimationNonPressedEffects_Proto_EFFECT_STATIC_COLOR;
-        config.animationOptions.profiles[1].basePressedEffect = AnimationPressedEffects_Proto::AnimationPressedEffects_Proto_EFFECT_HELD_JIGGLETWOSTATICS;
-        config.animationOptions.profiles[1].baseCycleTime = 1;
+        config.animationOptions.profiles[1].baseNonPressedEffect = AnimationNonPressedEffects::AnimationNonPressedEffects_EFFECT_CHASE_LEFT_TO_RIGHT;
+        config.animationOptions.profiles[1].basePressedEffect = AnimationPressedEffects::AnimationPressedEffects_PRESSEDEFFECT_BURST;
+        config.animationOptions.profiles[1].baseCaseEffect = AnimationNonPressedEffects::AnimationNonPressedEffects_EFFECT_CHASE_LEFT_TO_RIGHT;
         config.animationOptions.profiles[1].buttonPressHoldTimeInMs = 500;
         config.animationOptions.profiles[1].buttonPressFadeOutTimeInMs = 500;
-        config.animationOptions.profiles[1].nonPressedSpecialColour = 255; //BLUE
-        config.animationOptions.profiles[1].pressedSpecialColour = (255 << 16) + (50 << 8); //reddy YELLOW
+        config.animationOptions.profiles[1].nonPressedSpecialColor = 255; //BLUE
+        config.animationOptions.profiles[1].pressedSpecialColor = (255 << 16) + (50 << 8); //reddy YELLOW
         config.animationOptions.profiles[1].bUseCaseLightsInSpecialMoves = true;
+        config.animationOptions.profiles[1].bUseCaseLightsInPressedAnimations = true;
     }
 
     // addonOptions.bootselButtonOptions
@@ -633,6 +657,13 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analog_smoothing, !!ANALOG_SMOOTHING_ENABLED);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, smoothing_factor, !!SMOOTHING_FACTOR);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analog_error, ANALOG_ERROR);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analog_smoothing2, !!ANALOG_SMOOTHING2_ENABLED);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, smoothing_factor2, !!SMOOTHING_FACTOR2);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analog_error2, ANALOG_ERROR2);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, inner_deadzone2, DEFAULT_INNER_DEADZONE2);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, outer_deadzone2, DEFAULT_OUTER_DEADZONE2);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, auto_calibrate2, !!AUTO_CALIBRATE2_ENABLED);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, forced_circularity2, !!FORCED_CIRCULARITY2_ENABLED);
 
     // addonOptions.turboOptions
     INIT_UNSET_PROPERTY(config.addonOptions.turboOptions, enabled, !!TURBO_ENABLED);
@@ -654,6 +685,9 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.turboOptions, shmupBtnMask3, SHMUP_BUTTON3);
     INIT_UNSET_PROPERTY(config.addonOptions.turboOptions, shmupBtnMask4, SHMUP_BUTTON4);
     INIT_UNSET_PROPERTY(config.addonOptions.turboOptions, shmupMixMode, SHMUP_MIX_MODE);
+    INIT_UNSET_PROPERTY(config.addonOptions.turboOptions, turboLedType, TURBO_LED_TYPE);
+    INIT_UNSET_PROPERTY(config.addonOptions.turboOptions, turboLedIndex, TURBO_LED_INDEX);
+    INIT_UNSET_PROPERTY(config.addonOptions.turboOptions, turboLedColor, static_cast<uint32_t>(TURBO_LED_COLOR.r) << 16 | static_cast<uint32_t>(TURBO_LED_COLOR.g) << 8 | static_cast<uint32_t>(TURBO_LED_COLOR.b));
 
     // addonOptions.reverseOptions
     INIT_UNSET_PROPERTY(config.addonOptions.reverseOptions, enabled, !!REVERSE_ENABLED);
@@ -699,24 +733,24 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
 
 	// addonOptions.tiltOptions
     INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, enabled, !!TILT_ENABLED);
-    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tilt1Pin, PIN_TILT_1);
+    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tilt1Pin, (Pin_t)-1);
     INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, factorTilt1LeftX, TILT1_FACTOR_LEFT_X);
     INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, factorTilt1LeftY, TILT1_FACTOR_LEFT_Y);
     INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, factorTilt1RightX, TILT1_FACTOR_RIGHT_X);
     INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, factorTilt1RightY, TILT1_FACTOR_RIGHT_Y);
-    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tilt2Pin, PIN_TILT_2);
+    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tilt2Pin, (Pin_t)-1);
     INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, factorTilt2LeftX, TILT2_FACTOR_LEFT_X);
     INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, factorTilt2LeftY, TILT2_FACTOR_LEFT_Y);
     INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, factorTilt2RightX, TILT2_FACTOR_RIGHT_X);
     INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, factorTilt2RightY, TILT2_FACTOR_RIGHT_Y);
-    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltLeftAnalogDownPin, PIN_TILT_LEFT_ANALOG_DOWN);
-    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltLeftAnalogUpPin, PIN_TILT_LEFT_ANALOG_UP);
-    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltLeftAnalogLeftPin, PIN_TILT_LEFT_ANALOG_LEFT);
-    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltLeftAnalogRightPin, PIN_TILT_LEFT_ANALOG_RIGHT);
-    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltRightAnalogDownPin, PIN_TILT_RIGHT_ANALOG_DOWN);
-    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltRightAnalogUpPin, PIN_TILT_RIGHT_ANALOG_UP);
-    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltRightAnalogLeftPin, PIN_TILT_RIGHT_ANALOG_LEFT);
-    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltRightAnalogRightPin, PIN_TILT_RIGHT_ANALOG_RIGHT);
+    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltLeftAnalogDownPin, (Pin_t)-1);
+    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltLeftAnalogUpPin, (Pin_t)-1);
+    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltLeftAnalogLeftPin, (Pin_t)-1);
+    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltLeftAnalogRightPin, (Pin_t)-1);
+    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltRightAnalogDownPin, (Pin_t)-1);
+    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltRightAnalogUpPin, (Pin_t)-1);
+    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltRightAnalogLeftPin, (Pin_t)-1);
+    INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltRightAnalogRightPin, (Pin_t)-1);
     INIT_UNSET_PROPERTY(config.addonOptions.tiltOptions, tiltSOCDMode, TILT_SOCD_MODE);
 
     // addonOptions.buzzerOptions
@@ -724,16 +758,6 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.buzzerOptions, pin, BUZZER_PIN);
     INIT_UNSET_PROPERTY(config.addonOptions.buzzerOptions, volume, BUZZER_VOLUME);
     INIT_UNSET_PROPERTY(config.addonOptions.buzzerOptions, enablePin, BUZZER_ENABLE_PIN);
-
-    // addonOptions.inputHistoryOptions
-    INIT_UNSET_PROPERTY(config.addonOptions.inputHistoryOptions, enabled, !!INPUT_HISTORY_ENABLED);
-    INIT_UNSET_PROPERTY(config.addonOptions.inputHistoryOptions, length, INPUT_HISTORY_LENGTH);
-    INIT_UNSET_PROPERTY(config.addonOptions.inputHistoryOptions, col, INPUT_HISTORY_COL);
-    INIT_UNSET_PROPERTY(config.addonOptions.inputHistoryOptions, row, INPUT_HISTORY_ROW);
-
-    // addonOptions.playerNumberOptions
-    INIT_UNSET_PROPERTY(config.addonOptions.playerNumberOptions, enabled, !!PLAYERNUM_ADDON_ENABLED);
-    INIT_UNSET_PROPERTY(config.addonOptions.playerNumberOptions, number, PLAYER_NUMBER);
 
     // addonOptions.ps4Options
     INIT_UNSET_PROPERTY_BYTES(config.addonOptions.ps4Options, serial, emptyByteArray);
@@ -825,6 +849,181 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     // reminder that this must be set or else nanopb won't retain anything
     config.addonOptions.reactiveLEDOptions.leds_count = REACTIVE_LED_COUNT;
 
+    // addonOptions.heTriggerOptions
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, enabled, !!HETRIGGER_ENABLED);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, selectPin0, HETRIGGER_S0_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, selectPin1, HETRIGGER_S1_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, selectPin2, HETRIGGER_S2_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, selectPin3, HETRIGGER_S3_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxADCPin0, HETRIGGER_ADC0);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxADCPin1, HETRIGGER_ADC1);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxADCPin2, HETRIGGER_ADC2);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxADCPin3, HETRIGGER_ADC3);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxChannels, HETRIGGER_MUX_CHANNELS);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], action, HETRIGGER_HE0_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], active, HETRIGGER_HE0_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], idle, HETRIGGER_HE0_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], max, HETRIGGER_HE0_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], polarity, HETRIGGER_HE0_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[1], action, HETRIGGER_HE1_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[1], active, HETRIGGER_HE1_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[1], idle, HETRIGGER_HE1_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[1], max, HETRIGGER_HE1_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[1], polarity, HETRIGGER_HE1_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[2], action, HETRIGGER_HE2_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[2], active, HETRIGGER_HE2_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[2], idle, HETRIGGER_HE2_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[2], max, HETRIGGER_HE2_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[2], polarity, HETRIGGER_HE2_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[3], action, HETRIGGER_HE3_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[3], active, HETRIGGER_HE3_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[3], idle, HETRIGGER_HE3_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[3], max, HETRIGGER_HE3_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[3], polarity, HETRIGGER_HE3_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[4], action, HETRIGGER_HE4_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[4], active, HETRIGGER_HE4_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[4], idle, HETRIGGER_HE4_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[4], max, HETRIGGER_HE4_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[4], polarity, HETRIGGER_HE4_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[5], action, HETRIGGER_HE5_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[5], active, HETRIGGER_HE5_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[5], idle, HETRIGGER_HE5_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[5], max, HETRIGGER_HE5_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[5], polarity, HETRIGGER_HE5_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[6], action, HETRIGGER_HE6_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[6], active, HETRIGGER_HE6_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[6], idle, HETRIGGER_HE6_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[6], max, HETRIGGER_HE6_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[6], polarity, HETRIGGER_HE6_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[7], action, HETRIGGER_HE7_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[7], active, HETRIGGER_HE7_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[7], idle, HETRIGGER_HE7_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[7], max, HETRIGGER_HE7_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[7], polarity, HETRIGGER_HE7_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[8], action, HETRIGGER_HE8_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[8], active, HETRIGGER_HE8_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[8], idle, HETRIGGER_HE8_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[8], max, HETRIGGER_HE8_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[8], polarity, HETRIGGER_HE8_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[9], action, HETRIGGER_HE9_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[9], active, HETRIGGER_HE9_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[9], idle, HETRIGGER_HE9_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[9], max, HETRIGGER_HE9_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[9], polarity, HETRIGGER_HE9_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[10], action, HETRIGGER_HE10_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[10], active, HETRIGGER_HE10_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[10], idle, HETRIGGER_HE10_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[10], max, HETRIGGER_HE10_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[10], polarity, HETRIGGER_HE10_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[11], action, HETRIGGER_HE11_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[11], active, HETRIGGER_HE11_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[11], idle, HETRIGGER_HE11_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[11], max, HETRIGGER_HE11_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[11], polarity, HETRIGGER_HE11_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[12], action, HETRIGGER_HE12_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[12], active, HETRIGGER_HE12_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[12], idle, HETRIGGER_HE12_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[12], max, HETRIGGER_HE12_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[12], polarity, HETRIGGER_HE12_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[13], action, HETRIGGER_HE13_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[13], active, HETRIGGER_HE13_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[13], idle, HETRIGGER_HE13_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[13], max, HETRIGGER_HE13_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[13], polarity, HETRIGGER_HE13_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[14], action, HETRIGGER_HE14_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[14], active, HETRIGGER_HE14_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[14], idle, HETRIGGER_HE14_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[14], max, HETRIGGER_HE14_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[14], polarity, HETRIGGER_HE14_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[15], action, HETRIGGER_HE15_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[15], active, HETRIGGER_HE15_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[15], idle, HETRIGGER_HE15_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[15], max, HETRIGGER_HE15_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[15], polarity, HETRIGGER_HE15_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[16], action, HETRIGGER_HE16_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[16], active, HETRIGGER_HE16_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[16], idle, HETRIGGER_HE16_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[16], max, HETRIGGER_HE16_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[16], polarity, HETRIGGER_HE16_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[17], action, HETRIGGER_HE17_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[17], active, HETRIGGER_HE17_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[17], idle, HETRIGGER_HE17_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[17], max, HETRIGGER_HE17_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[17], polarity, HETRIGGER_HE17_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[18], action, HETRIGGER_HE18_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[18], active, HETRIGGER_HE18_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[18], idle, HETRIGGER_HE18_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[18], max, HETRIGGER_HE18_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[18], polarity, HETRIGGER_HE18_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[19], action, HETRIGGER_HE19_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[19], active, HETRIGGER_HE19_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[19], idle, HETRIGGER_HE19_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[19], max, HETRIGGER_HE19_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[19], polarity, HETRIGGER_HE19_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[20], action, HETRIGGER_HE20_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[20], active, HETRIGGER_HE20_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[20], idle, HETRIGGER_HE20_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[20], max, HETRIGGER_HE20_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[20], polarity, HETRIGGER_HE20_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[21], action, HETRIGGER_HE21_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[21], active, HETRIGGER_HE21_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[21], idle, HETRIGGER_HE21_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[21], max, HETRIGGER_HE21_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[21], polarity, HETRIGGER_HE21_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[22], action, HETRIGGER_HE22_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[22], active, HETRIGGER_HE22_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[22], idle, HETRIGGER_HE22_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[22], max, HETRIGGER_HE22_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[22], polarity, HETRIGGER_HE22_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[23], action, HETRIGGER_HE23_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[23], active, HETRIGGER_HE23_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[23], idle, HETRIGGER_HE23_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[23], max, HETRIGGER_HE23_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[23], polarity, HETRIGGER_HE23_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[24], action, HETRIGGER_HE24_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[24], active, HETRIGGER_HE24_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[24], idle, HETRIGGER_HE24_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[24], max, HETRIGGER_HE24_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[24], polarity, HETRIGGER_HE24_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[25], action, HETRIGGER_HE25_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[25], active, HETRIGGER_HE25_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[25], idle, HETRIGGER_HE25_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[25], max, HETRIGGER_HE25_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[25], polarity, HETRIGGER_HE25_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[26], action, HETRIGGER_HE26_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[26], active, HETRIGGER_HE26_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[26], idle, HETRIGGER_HE26_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[26], max, HETRIGGER_HE26_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[26], polarity, HETRIGGER_HE26_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[27], action, HETRIGGER_HE27_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[27], active, HETRIGGER_HE27_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[27], idle, HETRIGGER_HE27_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[27], max, HETRIGGER_HE27_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[27], polarity, HETRIGGER_HE27_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[28], action, HETRIGGER_HE28_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[28], active, HETRIGGER_HE28_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[28], idle, HETRIGGER_HE28_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[28], max, HETRIGGER_HE28_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[28], polarity, HETRIGGER_HE28_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[29], action, HETRIGGER_HE29_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[29], active, HETRIGGER_HE29_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[29], idle, HETRIGGER_HE29_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[29], max, HETRIGGER_HE29_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[29], polarity, HETRIGGER_HE29_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[30], action, HETRIGGER_HE30_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[30], active, HETRIGGER_HE30_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[30], idle, HETRIGGER_HE30_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[30], max, HETRIGGER_HE30_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[30], polarity, HETRIGGER_HE30_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], action, HETRIGGER_HE31_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], active, HETRIGGER_HE31_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], idle, HETRIGGER_HE31_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], max, HETRIGGER_HE31_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], polarity, HETRIGGER_HE31_POLARITY);
+    
+    // reminder that this must be set or else nanopb won't retain anything
+    config.addonOptions.heTriggerOptions.triggers_count = HETRIGGER_COUNT;
+
     // keyboardMapping
     INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions, enabled, KEYBOARD_HOST_ENABLED);
     INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions, deprecatedPinDplus, KEYBOARD_HOST_PIN_DPLUS);
@@ -847,13 +1046,21 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions.mapping, keyButtonR3, KEY_BUTTON_R3);
     INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions.mapping, keyButtonA1, KEY_BUTTON_A1);
     INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions.mapping, keyButtonA2, KEY_BUTTON_A2);
+    INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions, mouseLeft, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions, mouseMiddle, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions, mouseRight, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions, mouseSensitivity, KEYBOARD_HOST_MOUSE_SENSITIVITY);
 
     // addonOptions.focusModeOptions
     INIT_UNSET_PROPERTY(config.addonOptions.focusModeOptions, enabled, !!FOCUS_MODE_ENABLED);
-    INIT_UNSET_PROPERTY(config.addonOptions.focusModeOptions, pin, FOCUS_MODE_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.focusModeOptions, pin, -1);
     INIT_UNSET_PROPERTY(config.addonOptions.focusModeOptions, buttonLockMask, FOCUS_MODE_BUTTON_MASK);
     INIT_UNSET_PROPERTY(config.addonOptions.focusModeOptions, buttonLockEnabled, !!FOCUS_MODE_BUTTON_LOCK_ENABLED);
     INIT_UNSET_PROPERTY(config.addonOptions.focusModeOptions, macroLockEnabled, !!FOCUS_MODE_MACRO_LOCK_ENABLED);
+
+
+    // addonOptions.gamepadUSBHostOptions
+    INIT_UNSET_PROPERTY(config.addonOptions.gamepadUSBHostOptions, enabled, GAMEPAD_USB_HOST_ENABLED)
 
     // Macro options (always on)
     INIT_UNSET_PROPERTY(config.addonOptions.macroOptions, enabled, true);
@@ -872,6 +1079,15 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
         INIT_UNSET_PROPERTY_STR(config.addonOptions.macroOptions.macroList[i], macroLabel, "");
         INIT_UNSET_PROPERTY(config.addonOptions.macroOptions.macroList[i], deprecatedMacroTriggerPin, -1);
     }
+
+    // addonOptions.tg16Options
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, enabled, !!TG16_PAD_ENABLED);
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, oePin, TG16_PAD_OE_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, selectPin, TG16_PAD_SELECT_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, dataPin0, TG16_PAD_DATA_PIN0);
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, dataPin1, TG16_PAD_DATA_PIN1);
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, dataPin2, TG16_PAD_DATA_PIN2);
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, dataPin3, TG16_PAD_DATA_PIN3);
 }
 
 
@@ -893,10 +1109,12 @@ void gpioMappingsMigrationCore(Config& config)
     SliderOptions& jsSliderOptions = config.addonOptions.deprecatedSliderOptions;
     SOCDSliderOptions& socdSliderOptions = config.addonOptions.socdSliderOptions;
     PeripheralOptions& peripheralOptions = config.peripheralOptions;
-    TiltOptions& tiltOptions = config.addonOptions.tiltOptions;
     KeyboardHostOptions& keyboardHostOptions = config.addonOptions.keyboardHostOptions;
     PSPassthroughOptions& psPassthroughOptions = config.addonOptions.psPassthroughOptions;
     TurboOptions& turboOptions = config.addonOptions.turboOptions;
+    TiltOptions& tiltOptions = config.addonOptions.tiltOptions;
+    FocusModeOptions& focusModeOptions = config.addonOptions.focusModeOptions;
+    ReverseOptions& reverseOptions = config.addonOptions.reverseOptions;
 
     const auto gamepadMaskToGpioAction = [&](Mask_t gpMask) -> GpioAction
     {
@@ -1092,6 +1310,14 @@ void gpioMappingsMigrationCore(Config& config)
         socdSliderOptions.deprecatedPinTwo = -1;
     }
 
+    if (focusModeOptions.enabled) {
+        fromProtoBuf(focusModeOptions.has_pin, &focusModeOptions.pin, GpioAction::SUSTAIN_FOCUS_MODE);
+    }
+
+    if (reverseOptions.enabled) {
+        fromProtoBuf(reverseOptions.has_buttonPin, &reverseOptions.buttonPin, GpioAction::BUTTON_PRESS_INPUT_REVERSE);
+    }
+
     // verify that tilt factors are not set to -1
     if (tiltOptions.enabled) {
         if (tiltOptions.factorTilt1LeftX == -1) tiltOptions.factorTilt1LeftX = TILT1_FACTOR_LEFT_X;
@@ -1102,6 +1328,17 @@ void gpioMappingsMigrationCore(Config& config)
         if (tiltOptions.factorTilt2LeftY == -1) tiltOptions.factorTilt2LeftY = TILT2_FACTOR_LEFT_Y;
         if (tiltOptions.factorTilt2RightX == -1) tiltOptions.factorTilt2RightX = TILT2_FACTOR_RIGHT_X;
         if (tiltOptions.factorTilt2RightY == -1) tiltOptions.factorTilt2RightY = TILT2_FACTOR_RIGHT_Y;
+
+        fromProtoBuf(tiltOptions.has_tilt1Pin, &tiltOptions.tilt1Pin, GpioAction::ANALOG_DIRECTION_MOD_LOW);
+        fromProtoBuf(tiltOptions.has_tilt2Pin, &tiltOptions.tilt2Pin, GpioAction::ANALOG_DIRECTION_MOD_HIGH);
+        fromProtoBuf(tiltOptions.has_tiltLeftAnalogUpPin, &tiltOptions.tiltLeftAnalogUpPin, GpioAction::ANALOG_DIRECTION_LS_Y_NEG);
+        fromProtoBuf(tiltOptions.has_tiltLeftAnalogDownPin, &tiltOptions.tiltLeftAnalogDownPin, GpioAction::ANALOG_DIRECTION_LS_Y_POS);
+        fromProtoBuf(tiltOptions.has_tiltLeftAnalogLeftPin, &tiltOptions.tiltLeftAnalogLeftPin, GpioAction::ANALOG_DIRECTION_LS_X_NEG);
+        fromProtoBuf(tiltOptions.has_tiltLeftAnalogRightPin, &tiltOptions.tiltLeftAnalogRightPin, GpioAction::ANALOG_DIRECTION_LS_X_POS);
+        fromProtoBuf(tiltOptions.has_tiltRightAnalogUpPin, &tiltOptions.tiltRightAnalogUpPin, GpioAction::ANALOG_DIRECTION_RS_Y_NEG);
+        fromProtoBuf(tiltOptions.has_tiltRightAnalogDownPin, &tiltOptions.tiltRightAnalogDownPin, GpioAction::ANALOG_DIRECTION_RS_Y_POS);
+        fromProtoBuf(tiltOptions.has_tiltRightAnalogLeftPin, &tiltOptions.tiltRightAnalogLeftPin, GpioAction::ANALOG_DIRECTION_RS_X_NEG);
+        fromProtoBuf(tiltOptions.has_tiltRightAnalogRightPin, &tiltOptions.tiltRightAnalogRightPin, GpioAction::ANALOG_DIRECTION_RS_X_POS);
     }
 
     // Assign all potential board config pins
@@ -1296,28 +1533,35 @@ void gpioMappingsMigrationCore(Config& config)
     markAddonPinIfUsed(config.addonOptions.analogOptions.analogAdc2PinY);
     markAddonPinIfUsed(config.addonOptions.buzzerOptions.pin);
     markAddonPinIfUsed(config.addonOptions.buzzerOptions.enablePin);
-    markAddonPinIfUsed(config.addonOptions.focusModeOptions.pin);
     markAddonPinIfUsed(config.addonOptions.turboOptions.ledPin);
     markAddonPinIfUsed(config.addonOptions.turboOptions.shmupDialPin);
     markAddonPinIfUsed(config.addonOptions.turboOptions.shmupBtn1Pin);
     markAddonPinIfUsed(config.addonOptions.turboOptions.shmupBtn2Pin);
     markAddonPinIfUsed(config.addonOptions.turboOptions.shmupBtn3Pin);
     markAddonPinIfUsed(config.addonOptions.turboOptions.shmupBtn4Pin);
-    markAddonPinIfUsed(config.addonOptions.reverseOptions.buttonPin);
     markAddonPinIfUsed(config.addonOptions.reverseOptions.ledPin);
-    markAddonPinIfUsed(config.addonOptions.tiltOptions.tilt1Pin);
-    markAddonPinIfUsed(config.addonOptions.tiltOptions.tilt2Pin);
-    markAddonPinIfUsed(config.addonOptions.tiltOptions.tiltLeftAnalogUpPin);
-    markAddonPinIfUsed(config.addonOptions.tiltOptions.tiltLeftAnalogDownPin);
-    markAddonPinIfUsed(config.addonOptions.tiltOptions.tiltLeftAnalogLeftPin);
-    markAddonPinIfUsed(config.addonOptions.tiltOptions.tiltLeftAnalogRightPin);
-    markAddonPinIfUsed(config.addonOptions.tiltOptions.tiltRightAnalogUpPin);
-    markAddonPinIfUsed(config.addonOptions.tiltOptions.tiltRightAnalogDownPin);
-    markAddonPinIfUsed(config.addonOptions.tiltOptions.tiltRightAnalogLeftPin);
-    markAddonPinIfUsed(config.addonOptions.tiltOptions.tiltRightAnalogRightPin);
     markAddonPinIfUsed(config.addonOptions.snesOptions.clockPin);
     markAddonPinIfUsed(config.addonOptions.snesOptions.latchPin);
     markAddonPinIfUsed(config.addonOptions.snesOptions.dataPin);
+    markAddonPinIfUsed(config.addonOptions.tg16Options.oePin);
+    markAddonPinIfUsed(config.addonOptions.tg16Options.selectPin);
+    markAddonPinIfUsed(config.addonOptions.tg16Options.dataPin0);
+    markAddonPinIfUsed(config.addonOptions.tg16Options.dataPin1);
+    markAddonPinIfUsed(config.addonOptions.tg16Options.dataPin2);
+    markAddonPinIfUsed(config.addonOptions.tg16Options.dataPin3);
+
+    // Set our HE trigger options
+    if (config.addonOptions.heTriggerOptions.enabled) {
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.muxADCPin0);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.muxADCPin1);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.muxADCPin2);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.muxADCPin3);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.selectPin0);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.selectPin1);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.selectPin2);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.selectPin3);
+    }
+
 
     for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
         config.gpioMappings.pins[pin].action = actions[pin];
@@ -1353,7 +1597,7 @@ void gpioMappingsMigrationProfiles(Config& config)
         }
     };
 
-    for (uint8_t profileNum = 0; profileNum <= 2; profileNum++) {
+    for (uint8_t profileNum = 0; profileNum <= MAX_PROFILES-2; profileNum++) {
         for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
             config.profileOptions.gpioMappingsSets[profileNum].pins[pin].action = config.gpioMappings.pins[pin].action;
         }
@@ -1377,7 +1621,7 @@ void gpioMappingsMigrationProfiles(Config& config)
         config.profileOptions.gpioMappingsSets[profileNum].pins_count = NUM_BANK0_GPIOS;
     }
     // reminder that this must be set or else nanopb won't retain anything
-    config.profileOptions.gpioMappingsSets_count = 3;
+    config.profileOptions.gpioMappingsSets_count = 5;
 
     config.migrations.buttonProfilesMigrated = true;
 }
@@ -1391,10 +1635,15 @@ void migrateTurboPinToGpio(Config& config) {
         Pin_t pin = turboOptions.deprecatedButtonPin;
         // previous config had a value we haven't migrated yet, it can/should apply in the new config
         config.gpioMappings.pins[pin].action = GpioAction::BUTTON_PRESS_TURBO;
-        for (uint8_t profileNum = 0; profileNum <= 2; profileNum++) {
+        for (uint8_t profileNum = 0; profileNum <= MAX_PROFILES-2; profileNum++) {
             config.profileOptions.gpioMappingsSets[profileNum].pins[pin].action = GpioAction::BUTTON_PRESS_TURBO;
         }
         turboOptions.deprecatedButtonPin = -1; // set our turbo options to -1 for subsequent calls
+    }
+
+    // Make sure we set PWM mode if we are using led pin
+    if ( turboOptions.turboLedType == PLED_TYPE_NONE && isValidPin(turboOptions.ledPin) ) {
+        turboOptions.turboLedType = PLED_TYPE_PWM;
     }
 }
 
@@ -1468,7 +1717,7 @@ void migrateMacroPinsToGpio(Config& config) {
     if (macroOptions.has_deprecatedPin && isValidPin(macroOptions.deprecatedPin) ) {
         Pin_t pin = macroOptions.deprecatedPin;
         config.gpioMappings.pins[pin].action = GpioAction::BUTTON_PRESS_MACRO;
-        for (uint8_t profileNum = 0; profileNum <= 2; profileNum++) {
+        for (uint8_t profileNum = 0; profileNum <= MAX_PROFILES-2; profileNum++) {
             config.profileOptions.gpioMappingsSets[profileNum].pins[pin].action = GpioAction::BUTTON_PRESS_MACRO;
         }
         macroOptions.deprecatedPin = -1; // set our turbo options to -1 for subsequent calls
@@ -1484,7 +1733,7 @@ void migrateMacroPinsToGpio(Config& config) {
                     isValidPin(macroOptions.macroList[i].deprecatedMacroTriggerPin) ) {
                 Pin_t pin = macroOptions.macroList[i].deprecatedMacroTriggerPin;
                 config.gpioMappings.pins[pin].action = actionList[i];
-                for (uint8_t profileNum = 0; profileNum <= 2; profileNum++) {
+                for (uint8_t profileNum = 0; profileNum <= MAX_PROFILES-2; profileNum++) {
                     config.profileOptions.gpioMappingsSets[profileNum].pins[pin].action = actionList[i];
                 }
                 macroOptions.macroList[i].deprecatedMacroTriggerPin = -1; // set our turbo options to -1 for subsequent calls

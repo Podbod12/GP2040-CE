@@ -190,10 +190,12 @@ static void service_traffic(void)
   /* handle any packet received by tud_network_recv_cb() */
   if (received_frame)
   {
-    ethernet_input(received_frame, &netif_data);
+    err_t ret = ethernet_input(received_frame, &netif_data);
     pbuf_free(received_frame);
     received_frame = NULL;
-    tud_network_recv_renew();
+    if ( ret == ERR_OK ) {
+      tud_network_recv_renew();
+    }
   }
 
   sys_check_timeouts();
@@ -211,8 +213,9 @@ void tud_network_init_cb(void)
 
 int rndis_init(void)
 {
-  /* initialize TinyUSB */
-  tusb_init();
+  // Removed as rndis defect 07-08-2025 as we need to setup TinyUSB to non-default values
+  ///* initialize TinyUSB */
+  //tusb_init();
 
   /* initialize lwip, dhcp-server, dns-server, and http */
   init_lwip();

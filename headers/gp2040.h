@@ -11,6 +11,7 @@
 // GP2040 Classes
 #include "gamepad.h"
 #include "addonmanager.h"
+#include "eventmanager.h"
 #include "gpdriver.h"
 
 #include "pico/types.h"
@@ -60,7 +61,8 @@ private:
         SET_INPUT_MODE_EGRET,
         SET_INPUT_MODE_ASTRO,
         SET_INPUT_MODE_PSCLASSIC,
-        SET_INPUT_MODE_XBOXORIGINAL
+        SET_INPUT_MODE_XBOXORIGINAL,
+        SET_INPUT_MODE_SWITCH_PRO,
     };
     BootAction getBootAction();
     void getReinitGamepad(Gamepad * gamepad);
@@ -69,8 +71,23 @@ private:
     void initializeStandardGpio();
     void deinitializeStandardGpio();
 
+    // event handling checking
+    void checkRawState(GamepadState prevState, GamepadState currState);
+    void checkProcessedState(GamepadState prevState, GamepadState currState);
+
     // input mask, action
     std::map<uint32_t, int32_t> bootActions;
+
+    void checkSaveRebootState();
+    bool saveRequested = false;
+    bool forceSave = false;
+    bool saveSuccessful = false;
+    void handleStorageSave(GPEvent* e);
+
+    bool rebootRequested = false;
+    void handleSystemReboot(GPEvent* e);
+
+    System::BootMode rebootMode = System::BootMode::DEFAULT;
 };
 
 #endif
