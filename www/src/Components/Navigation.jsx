@@ -81,9 +81,15 @@ const Navigation = () => {
 						>
 							{t('Navigation:peripheral-mapping-label')}
 						</NavDropdown.Item>
-						<NavDropdown.Item as={NavLink} eventKey={eventKey++} to="/leds">
+
+						<NavDropdown.Item
+							as={NavLink}
+							eventKey={eventKey++}
+							to="/led-config"
+						>
 							{t('Navigation:led-config-label')}
 						</NavDropdown.Item>
+
 						<NavDropdown.Item
 							as={NavLink}
 							eventKey={eventKey++}

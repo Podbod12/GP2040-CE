@@ -24,11 +24,19 @@ const API_BINDING = {
 		get: WebApi.getGamepadOptions,
 		set: WebApi.setGamepadOptions,
 	},
-	leds: {
+	keyboard: {
+		get: WebApi.getKeyMappings,
+		set: WebApi.setKeyMappings,
+	},
+	ledOptions: {
+		get: WebApi.getLedOptions,
+		set: WebApi.setLedOptions,
+	},
+	ledAnimations: {
 		get: WebApi.getAnimationOptions,
 		set: WebApi.setAnimationOptions,
 	},
-	lightData: {
+	ledLayout: {
 		get: WebApi.getLightsDataOptions,
 		set: WebApi.setLightsDataOptions,
 	},

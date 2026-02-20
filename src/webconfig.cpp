@@ -41,7 +41,7 @@
 
 extern struct fsdata_file file__index_html[];
 
-const static char* spaPaths[] = { "/animation", "/backup", "/display-config", "/leds", "/pin-mapping", "/settings", "/reset-settings", "/add-ons", "/macro", "/peripheral-mapping" };
+const static char* spaPaths[] = { "/animation", "/backup", "/custom-theme", "/display-config", "/led-config", "/pin-mapping", "/settings", "/reset-settings", "/add-ons", "/macro", "/peripheral-mapping" };
 const static char* excludePaths[] = { "/css", "/images", "/js", "/static" };
 const static uint32_t rebootDelayMs = 500;
 static string http_post_uri;
@@ -793,22 +793,17 @@ std::string getGamepadOptions()
 std::string setLedOptions()
 {
     DynamicJsonDocument doc = get_post_data();
-
-    const auto readIndex = [&](int32_t& var, const char* key0, const char* key1)
-    {
-        var = -1;
-        if (hasValue(doc, key0, key1))
-        {
-            readDoc(var, doc, key0, key1);
-        }
-    };
-
     LEDOptions& ledOptions = Storage::getInstance().getLedOptions();
+
     docToPin(ledOptions.dataPin, doc, "dataPin");
     readDoc(ledOptions.ledFormat, doc, "ledFormat");
-    readDoc(ledOptions.brightnessMaximum, doc, "brightnessMaximum");
     readDoc(ledOptions.turnOffWhenSuspended, doc, "turnOffWhenSuspended");
-    
+
+    readDoc(ledOptions.brightnessMaximum, doc, "brightnessMaximum");
+    uint32_t checkedBrightnessMax = std::clamp<uint32_t>(ledOptions.brightnessMaximum, 0, 100);
+    ledOptions.brightnessMaximum = int(((float)checkedBrightnessMax * 2.55f) +  + 0.5f); //+0.5 to cause it to round to nearest number
+    ledOptions.brightnessMaximum = std::clamp<uint32_t>(ledOptions.brightnessMaximum, 0, 255);
+
     readDoc(ledOptions.pledType, doc, "pledType");
     docToPin(ledOptions.pledPin1, doc, "pledPin1");
     docToPin(ledOptions.pledPin2, doc, "pledPin2");
@@ -831,8 +826,11 @@ std::string getLedOptions()
     const LEDOptions& ledOptions = Storage::getInstance().getLedOptions();
     writeDoc(doc, "dataPin", cleanPin(ledOptions.dataPin));
     writeDoc(doc, "ledFormat", ledOptions.ledFormat);
-    writeDoc(doc, "brightnessMaximum", ledOptions.brightnessMaximum);
     writeDoc(doc, "turnOffWhenSuspended", ledOptions.turnOffWhenSuspended);
+
+    uint32_t adjustedbrightnessMax = (uint32_t)(((float)ledOptions.brightnessMaximum / 2.55f) + 0.5f); //+0.5 to cause it to round to nearest number
+    adjustedbrightnessMax = std::clamp<uint32_t>(adjustedbrightnessMax, 0, 100);
+    writeDoc(doc, "brightnessMaximum", adjustedbrightnessMax);
 
     writeDoc(doc, "pledType", ledOptions.pledType);
     writeDoc(doc, "pledPin1", ledOptions.pledPin1);
@@ -871,32 +869,11 @@ std::string getButtonLayouts()
 {
     const size_t capacity = JSON_OBJECT_SIZE(500);
     DynamicJsonDocument doc(capacity);
-    const LEDOptions& ledOptions = Storage::getInstance().getLedOptions();
     const DisplayOptions& displayOptions = Storage::getInstance().getDisplayOptions();
     uint16_t elementCtr = 0;
 
     LayoutManager::LayoutList layoutA = LayoutManager::getInstance().getLayoutA();
     LayoutManager::LayoutList layoutB = LayoutManager::getInstance().getLayoutB();
-
-    writeDoc(doc, "ledLayout", "id", ledOptions.ledLayout);
-    writeDoc(doc, "ledLayout", "indexUp", ledOptions.indexUp);
-    writeDoc(doc, "ledLayout", "indexDown", ledOptions.indexDown);
-    writeDoc(doc, "ledLayout", "indexLeft", ledOptions.indexLeft);
-    writeDoc(doc, "ledLayout", "indexRight", ledOptions.indexRight);
-    writeDoc(doc, "ledLayout", "indexB1", ledOptions.indexB1);
-    writeDoc(doc, "ledLayout", "indexB2", ledOptions.indexB2);
-    writeDoc(doc, "ledLayout", "indexB3", ledOptions.indexB3);
-    writeDoc(doc, "ledLayout", "indexB4", ledOptions.indexB4);
-    writeDoc(doc, "ledLayout", "indexL1", ledOptions.indexL1);
-    writeDoc(doc, "ledLayout", "indexR1", ledOptions.indexR1);
-    writeDoc(doc, "ledLayout", "indexL2", ledOptions.indexL2);
-    writeDoc(doc, "ledLayout", "indexR2", ledOptions.indexR2);
-    writeDoc(doc, "ledLayout", "indexS1", ledOptions.indexS1);
-    writeDoc(doc, "ledLayout", "indexS2", ledOptions.indexS2);
-    writeDoc(doc, "ledLayout", "indexL3", ledOptions.indexL3);
-    writeDoc(doc, "ledLayout", "indexR3", ledOptions.indexR3);
-    writeDoc(doc, "ledLayout", "indexA1", ledOptions.indexA1);
-    writeDoc(doc, "ledLayout", "indexA2", ledOptions.indexA2);
 
     writeDoc(doc, "displayLayouts", "buttonLayoutId", displayOptions.buttonLayout);
     for (elementCtr = 0; elementCtr < layoutA.size(); elementCtr++) {
@@ -950,21 +927,21 @@ std::string setLightsDataOptions()
     JsonObject docJson = doc.as<JsonObject>();
     JsonObject AnimOptions = docJson["LightData"];
     JsonArray lightsList = AnimOptions["Lights"];
-    options.lightDataSize = 0;
+    options.lightClusterData_count = 0;
+    options.lightClusterDataInitialised = true;
     for (JsonObject light : lightsList)
     {
-        int thisEntryIndex = options.lightDataSize * 6;
-        options.lightData.bytes[thisEntryIndex] = light["firstLedIndex"].as<uint8_t>();
-        options.lightData.bytes[thisEntryIndex+1] = light["numLedsOnLight"].as<uint8_t>();
-        options.lightData.bytes[thisEntryIndex+2] = light["xCoord"].as<uint8_t>();
-        options.lightData.bytes[thisEntryIndex+3] = light["yCoord"].as<uint8_t>();
-        options.lightData.bytes[thisEntryIndex+4] = light["GPIOPinorCaseChainIndex"].as<uint8_t>();
-        options.lightData.bytes[thisEntryIndex+5] = (LightType)(light["lightType"].as<uint8_t>());
+        int thisEntryIndex = options.lightClusterData_count;
+        options.lightClusterData[thisEntryIndex].lightLocationData = light["firstLedIndex"].as<uint8_t>();
+        options.lightClusterData[thisEntryIndex].lightLocationData += ((int)light["numLedsOnLight"].as<uint8_t>()) << 8;
+        options.lightClusterData[thisEntryIndex].lightLocationData += ((int)light["xCoord"].as<uint8_t>()) << 16;
+        options.lightClusterData[thisEntryIndex].lightLocationData += ((int)light["yCoord"].as<uint8_t>()) << 24;
+        options.lightClusterData[thisEntryIndex].lightTypeData = light["GPIOPinorCaseChainIndex"].as<uint8_t>();
+        options.lightClusterData[thisEntryIndex].lightTypeData += ((int)light["lightType"].as<uint8_t>()) << 8;
 
-        options.lightDataSize++;
-        options.lightData.size = options.lightDataSize * 6;
+        options.lightClusterData_count++;
 
-        if(options.lightDataSize >= FRAME_MAX) //600 bytes total, 6 elements per light. FRAME_MAX(100) max lights
+        if(options.lightClusterData_count >= FRAME_MAX) //100 entries total
             break;
     }
 
@@ -981,17 +958,209 @@ std::string getLightsDataOptions()
 
     JsonObject LedOptions = doc.createNestedObject("LightData");
     JsonArray lightsList = LedOptions.createNestedArray("Lights");
-    for (int lightsIndex = 0; lightsIndex < options.lightDataSize; ++lightsIndex)
+    for (int lightsIndex = 0; lightsIndex < options.lightClusterData_count; ++lightsIndex)
     {
-        int thisEntryIndex = lightsIndex * 6;
         JsonObject light = lightsList.createNestedObject();
-        light["firstLedIndex"] = options.lightData.bytes[thisEntryIndex];
-        light["numLedsOnLight"] = options.lightData.bytes[thisEntryIndex+1];
-        light["xCoord"] = options.lightData.bytes[thisEntryIndex+2];
-        light["yCoord"] = options.lightData.bytes[thisEntryIndex+3];
-        light["GPIOPinorCaseChainIndex"] = options.lightData.bytes[thisEntryIndex+4];
-        light["lightType"] = options.lightData.bytes[thisEntryIndex+5];
+        light["firstLedIndex"] = options.lightClusterData[lightsIndex].lightLocationData & 0xFF;
+        light["numLedsOnLight"] = (options.lightClusterData[lightsIndex].lightLocationData >> 8) & 0xFF;
+        light["xCoord"] = (options.lightClusterData[lightsIndex].lightLocationData >> 16) & 0xFF;
+        light["yCoord"] = (options.lightClusterData[lightsIndex].lightLocationData >> 24) & 0xFF;
+        light["GPIOPinorCaseChainIndex"] = options.lightClusterData[lightsIndex].lightTypeData & 0xFF;
+        light["lightType"] = (options.lightClusterData[lightsIndex].lightTypeData >> 8) & 0xFF;
     }
+
+    return serialize_json(doc);
+}
+
+std::string getLightsPresetsByIndex(int presetIdx)
+{
+    DynamicJsonDocument outDoc(LWIP_HTTPD_POST_MAX_PAYLOAD_LEN);
+    JsonArray presetsArray = outDoc.to<JsonArray>();
+
+    auto addPreset = [&](const char* name, const unsigned char* data, int32_t dataSize)
+    {
+        if (strcmp(name, "") != 0) {
+            JsonObject preset = outDoc.to<JsonObject>();
+            preset["name"] = name;
+
+            JsonObject lightDataObj = preset.createNestedObject("lightData");
+            JsonArray lightsList = lightDataObj.createNestedArray("Lights");
+
+            for (int lightsIndex = 0; lightsIndex < dataSize; ++lightsIndex)
+            {
+                int thisEntryIndex = lightsIndex * 6;
+                JsonObject light = lightsList.createNestedObject();
+                light["firstLedIndex"] = data[thisEntryIndex];
+                light["numLedsOnLight"] = data[thisEntryIndex+1];
+                light["xCoord"] = data[thisEntryIndex+2];
+                light["yCoord"] = data[thisEntryIndex+3];
+                light["GPIOPinorCaseChainIndex"] = data[thisEntryIndex+4];
+                light["lightType"] = data[thisEntryIndex+5];
+            }
+        }
+    };
+
+    if(presetIdx == 0 && strcmp(LIGHT_DATA_NAME_DEFAULT, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_DEFAULT };
+        addPreset(LIGHT_DATA_NAME_DEFAULT, lightData, LIGHT_DATA_SIZE_DEFAULT);
+    }
+    else if(presetIdx == 1 && strcmp(LIGHT_DATA_NAME_1, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_1 };
+        addPreset(LIGHT_DATA_NAME_1, lightData, LIGHT_DATA_SIZE_1);
+    }
+    else if(presetIdx == 2 && strcmp(LIGHT_DATA_NAME_2, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_2 };
+        addPreset(LIGHT_DATA_NAME_2, lightData, LIGHT_DATA_SIZE_2);
+    }
+    else if(presetIdx == 3 && strcmp(LIGHT_DATA_NAME_3, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_3 };
+        addPreset(LIGHT_DATA_NAME_3, lightData, LIGHT_DATA_SIZE_3);
+    }
+    else if(presetIdx == 4 && strcmp(LIGHT_DATA_NAME_4, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_4 };
+        addPreset(LIGHT_DATA_NAME_4, lightData, LIGHT_DATA_SIZE_4);
+    }
+    else if(presetIdx == 5 && strcmp(LIGHT_DATA_NAME_5, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_5 };
+        addPreset(LIGHT_DATA_NAME_5, lightData, LIGHT_DATA_SIZE_5);
+    }
+    else if(presetIdx == 6 && strcmp(LIGHT_DATA_NAME_6, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_6 };
+        addPreset(LIGHT_DATA_NAME_6, lightData, LIGHT_DATA_SIZE_6);
+    }
+    else if(presetIdx == 7 && strcmp(LIGHT_DATA_NAME_7, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_7 };
+        addPreset(LIGHT_DATA_NAME_7, lightData, LIGHT_DATA_SIZE_7);
+    }
+
+    return serialize_json(outDoc);
+}
+
+std::string getLightsPresets0() { return getLightsPresetsByIndex(0); }
+std::string getLightsPresets1() { return getLightsPresetsByIndex(1); }
+std::string getLightsPresets2() { return getLightsPresetsByIndex(2); }
+std::string getLightsPresets3() { return getLightsPresetsByIndex(3); }
+std::string getLightsPresets4() { return getLightsPresetsByIndex(4); }
+std::string getLightsPresets5() { return getLightsPresetsByIndex(5); }
+std::string getLightsPresets6() { return getLightsPresetsByIndex(6); }
+std::string getLightsPresets7() { return getLightsPresetsByIndex(7); }
+
+std::string getLightsDataPresets()
+{
+    //DynamicJsonDocument outDoc(LWIP_HTTPD_POST_MAX_PAYLOAD_LEN);
+    DynamicJsonDocument outDoc((1024 * 32)); //Set a bigger value here as the preset data is quite large but it should be fine for a get call
+    JsonArray presetsArray = outDoc.to<JsonArray>();
+
+    auto addPreset = [&](const char* name, const unsigned char* data, int32_t dataSize)
+    {
+        if (strcmp(name, "") != 0) {
+            JsonObject preset = presetsArray.createNestedObject();
+            preset["name"] = name;
+
+            JsonObject lightDataObj = preset.createNestedObject("lightData");
+            JsonArray lightsList = lightDataObj.createNestedArray("Lights");
+
+            for (int lightsIndex = 0; lightsIndex < dataSize; ++lightsIndex)
+            {
+                int thisEntryIndex = lightsIndex * 6;
+                JsonObject light = lightsList.createNestedObject();
+                light["firstLedIndex"] = data[thisEntryIndex];
+                light["numLedsOnLight"] = data[thisEntryIndex+1];
+                light["xCoord"] = data[thisEntryIndex+2];
+                light["yCoord"] = data[thisEntryIndex+3];
+                light["GPIOPinorCaseChainIndex"] = data[thisEntryIndex+4];
+                light["lightType"] = data[thisEntryIndex+5];
+            }
+        }
+    };
+
+    if(strcmp(LIGHT_DATA_NAME_DEFAULT, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_DEFAULT };
+        addPreset(LIGHT_DATA_NAME_DEFAULT, lightData, LIGHT_DATA_SIZE_DEFAULT);
+    }
+    if(strcmp(LIGHT_DATA_NAME_1, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_1 };
+        addPreset(LIGHT_DATA_NAME_1, lightData, LIGHT_DATA_SIZE_1);
+    }
+    if(strcmp(LIGHT_DATA_NAME_2, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_2 };
+        addPreset(LIGHT_DATA_NAME_2, lightData, LIGHT_DATA_SIZE_2);
+    }
+    if(strcmp(LIGHT_DATA_NAME_3, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_3 };
+        addPreset(LIGHT_DATA_NAME_3, lightData, LIGHT_DATA_SIZE_3);
+    }
+    if(strcmp(LIGHT_DATA_NAME_4, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_4 };
+        addPreset(LIGHT_DATA_NAME_4, lightData, LIGHT_DATA_SIZE_4);
+    }
+    if(strcmp(LIGHT_DATA_NAME_5, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_5 };
+        addPreset(LIGHT_DATA_NAME_5, lightData, LIGHT_DATA_SIZE_5);
+    }
+    if(strcmp(LIGHT_DATA_NAME_6, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_6 };
+        addPreset(LIGHT_DATA_NAME_6, lightData, LIGHT_DATA_SIZE_6);
+    }
+    if(strcmp(LIGHT_DATA_NAME_7, "") != 0) {
+        const unsigned char lightData[] = { LIGHT_DATA_7 };
+        addPreset(LIGHT_DATA_NAME_7, lightData, LIGHT_DATA_SIZE_7);
+    }
+
+    return serialize_json(outDoc);
+}
+
+std::string setLightsToDefault()
+{
+    DynamicJsonDocument doc = get_post_data();
+
+    JsonObject docJson = doc.as<JsonObject>();
+    const char*  resetName = docJson["ResetName"];
+
+    if(strcmp(resetName, LIGHT_DATA_NAME_DEFAULT) == 0)
+    {
+        const unsigned char lightData[] = { LIGHT_DATA_DEFAULT };
+        NeoPicoLEDAddon::AssignLedPreset(lightData, sizeof(lightData));
+    }
+    else if(strcmp(resetName, LIGHT_DATA_NAME_1) == 0)
+    {
+        const unsigned char lightData[] = { LIGHT_DATA_1 };
+        NeoPicoLEDAddon::AssignLedPreset(lightData, sizeof(lightData));
+    }
+    else if(strcmp(resetName, LIGHT_DATA_NAME_2) == 0)
+    {
+        const unsigned char lightData[] = { LIGHT_DATA_2 };
+        NeoPicoLEDAddon::AssignLedPreset(lightData, sizeof(lightData));
+    }
+    else if(strcmp(resetName, LIGHT_DATA_NAME_3) == 0)
+    {
+        const unsigned char lightData[] = { LIGHT_DATA_3 };
+        NeoPicoLEDAddon::AssignLedPreset(lightData, sizeof(lightData));
+    }
+    else if(strcmp(resetName, LIGHT_DATA_NAME_4) == 0)
+    {
+        const unsigned char lightData[] = { LIGHT_DATA_4 };
+        NeoPicoLEDAddon::AssignLedPreset(lightData, sizeof(lightData));
+    }
+    else if(strcmp(resetName, LIGHT_DATA_NAME_5) == 0)
+    {
+        const unsigned char lightData[] = { LIGHT_DATA_5 };
+        NeoPicoLEDAddon::AssignLedPreset(lightData, sizeof(lightData));
+    }
+    else if(strcmp(resetName, LIGHT_DATA_NAME_6) == 0)
+    {
+        const unsigned char lightData[] = { LIGHT_DATA_6 };
+        NeoPicoLEDAddon::AssignLedPreset(lightData, sizeof(lightData));
+    }
+    else if(strcmp(resetName, LIGHT_DATA_NAME_7) == 0)
+    {
+        const unsigned char lightData[] = { LIGHT_DATA_7 };
+        NeoPicoLEDAddon::AssignLedPreset(lightData, sizeof(lightData));
+    }
+
+    NeoPicoLEDAddon::RestartLedSystem();
+
+    EventManager::getInstance().triggerEvent(new GPStorageSaveEvent(true));
 
     return serialize_json(doc);
 }
@@ -1002,19 +1171,23 @@ void helperGetProfileFromJsonObject(AnimationProfile* Profile, JsonObject* JsonD
     if(Profile->baseNonPressedEffect != (AnimationNonPressedEffects)((*JsonData)["baseNonPressedEffect"].as<uint32_t>()))
     {
         Profile->baseNonPressedEffect = (AnimationNonPressedEffects)((*JsonData)["baseNonPressedEffect"].as<uint32_t>());
-        Profile->baseCycleTime = 0;
+        Profile->baseCycleTime = 2;
     }
     if(Profile->basePressedEffect != (AnimationPressedEffects)((*JsonData)["basePressedEffect"].as<uint32_t>()))
     {
         Profile->basePressedEffect = (AnimationPressedEffects)((*JsonData)["basePressedEffect"].as<uint32_t>());
-        Profile->basePressedCycleTime = 0;
+        Profile->basePressedCycleTime = 2;
+    }
+    if(Profile->baseCaseEffect != (AnimationNonPressedEffects)((*JsonData)["baseCaseEffect"].as<uint32_t>()))
+    {
+        Profile->baseCaseEffect = (AnimationNonPressedEffects)((*JsonData)["baseCaseEffect"].as<uint32_t>());
+        Profile->baseCaseCycleTime = 2;
     }
     Profile->buttonPressHoldTimeInMs = (*JsonData)["buttonPressHoldTimeInMs"].as<uint32_t>();
     Profile->buttonPressFadeOutTimeInMs = (*JsonData)["buttonPressFadeOutTimeInMs"].as<uint32_t>();
     Profile->nonPressedSpecialColor = (*JsonData)["nonPressedSpecialColor"].as<uint32_t>();
     Profile->bUseCaseLightsInSpecialMoves = (*JsonData)["bUseCaseLightsInSpecialMoves"].as<bool>();
     Profile->bUseCaseLightsInPressedAnimations = (*JsonData)["bUseCaseLightsInPressedAnimations"].as<bool>();
-    Profile->baseCaseEffect = (AnimationNonPressedEffects)((*JsonData)["baseCaseEffect"].as<uint32_t>());
     Profile->pressedSpecialColor = (*JsonData)["pressedSpecialColor"].as<uint32_t>();
 
     JsonArray notPressedStaticColorsList = (*JsonData)["notPressedStaticColors"];
@@ -1101,7 +1274,7 @@ std::string setAnimationButtonTestState()
     JsonObject testOptions = docJson["TestLight"];
     int testButton = testOptions["testID"].as<uint32_t>();
     bool testIsCaseLight = testOptions["testIsCaseLight"].as<bool>();
-    
+
     AnimationStation::SetTestPinState(testButton, testIsCaseLight);
 
     return serialize_json(doc);
@@ -1117,6 +1290,7 @@ std::string setAnimationProtoOptions()
     JsonObject AnimOptions = docJson["AnimationOptions"];
 
     options.brightness = AnimOptions["brightness"].as<uint32_t>();
+    options.brightness = std::clamp<uint32_t>(options.brightness, 0, 10);
     options.autoDisableTime = AnimOptions["idletimeout"].as<uint32_t>() * 1000;
     options.baseProfileIndex = AnimOptions["baseProfileIndex"].as<uint32_t>();
     JsonArray customColorsList = AnimOptions["customColors"];
@@ -1201,7 +1375,7 @@ std::string getAnimationProtoOptions()
             caseStaticColorsList.add((options.profiles[profilesIndex].caseStaticColors[caseStaticColorsIndex] >> 8) & 0xFF);
             caseStaticColorsList.add((options.profiles[profilesIndex].caseStaticColors[caseStaticColorsIndex] >> 16) & 0xFF);
             caseStaticColorsList.add((options.profiles[profilesIndex].caseStaticColors[caseStaticColorsIndex] >> 24) & 0xFF);
-        }        
+        }
     }
 
     return serialize_json(doc);
@@ -1498,12 +1672,38 @@ std::string getExpansionPins()
     const size_t capacity = JSON_OBJECT_SIZE(100);
     DynamicJsonDocument doc(capacity);
     GpioMappingInfo* gpioMappings = Storage::getInstance().getAddonOptions().pcf8575Options.pins;
-    char pinName[6];
-    for (uint16_t pin = 0; pin < 16; pin++) {
-        snprintf(pinName, 6, "pin%0*d", 2, pin);
-        writeDoc(doc, "pins", "pcf8575", 0, pinName, "option", gpioMappings[pin].action);
-        writeDoc(doc, "pins", "pcf8575", 0, pinName, "direction", gpioMappings[pin].direction);
-    }
+    writeDoc(doc, "pins", "pcf8575", 0, "pin00", "option", gpioMappings[0].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin00", "direction", gpioMappings[0].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin01", "option", gpioMappings[1].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin01", "direction", gpioMappings[1].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin02", "option", gpioMappings[2].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin02", "direction", gpioMappings[2].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin03", "option", gpioMappings[3].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin03", "direction", gpioMappings[3].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin04", "option", gpioMappings[4].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin04", "direction", gpioMappings[4].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin05", "option", gpioMappings[5].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin05", "direction", gpioMappings[5].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin06", "option", gpioMappings[6].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin06", "direction", gpioMappings[6].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin07", "option", gpioMappings[7].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin07", "direction", gpioMappings[7].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin08", "option", gpioMappings[8].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin08", "direction", gpioMappings[8].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin09", "option", gpioMappings[9].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin09", "direction", gpioMappings[9].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin10", "option", gpioMappings[10].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin10", "direction", gpioMappings[10].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin11", "option", gpioMappings[11].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin11", "direction", gpioMappings[11].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin12", "option", gpioMappings[12].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin12", "direction", gpioMappings[12].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin13", "option", gpioMappings[13].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin13", "direction", gpioMappings[13].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin14", "option", gpioMappings[14].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin14", "direction", gpioMappings[14].direction);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin15", "option", gpioMappings[15].action);
+    writeDoc(doc, "pins", "pcf8575", 0, "pin15", "direction", gpioMappings[15].direction);
     return serialize_json(doc);
 }
 
@@ -1535,6 +1735,10 @@ std::string setExpansionPins()
 static uint32_t calibrationMuxChannels = 0;
 static Pin_t calibrationSelectPins[4];
 static Pin_t calibrationADCPins[4];
+static bool calibrationSmoothing = false;
+static uint32_t calibrationSmoothingFactor = 0;
+static float ema_smoothing;
+static uint32_t smoothingRead = 0;
 
 // Get the HE Trigger Calibration using our manual GPIO input and everything
 std::string setHETriggerCalibration()
@@ -1545,28 +1749,39 @@ std::string setHETriggerCalibration()
     calibrationSelectPins[1] = doc["muxSelectPin1"];
     calibrationSelectPins[2] = doc["muxSelectPin2"];
     calibrationSelectPins[3] = doc["muxSelectPin3"];
-    
+
     calibrationADCPins[0] = doc["muxADCPin0"];
     calibrationADCPins[1] = doc["muxADCPin1"];
     calibrationADCPins[2] = doc["muxADCPin2"];
     calibrationADCPins[3] = doc["muxADCPin3"];
 
+    calibrationSmoothing = doc["heTriggerSmoothing"];
+    calibrationSmoothingFactor = doc["heTriggerSmoothingFactor"];
+    ema_smoothing = (float)calibrationSmoothingFactor / 100.f; // 99 = max smoothing factor
+
     for (int i = 0; i < 4; i++) {
-        if ( calibrationSelectPins[i] != -1 && 
-                calibrationSelectPins[i] >= 0 && 
+        if ( calibrationSelectPins[i] != -1 &&
+                calibrationSelectPins[i] >= 0 &&
                 calibrationSelectPins[i] <= 29 ) {
             gpio_init(calibrationSelectPins[i]);
             gpio_set_dir(calibrationSelectPins[i], GPIO_OUT);
             gpio_put(calibrationSelectPins[i], 0);
         }
-        if ( calibrationADCPins[i] != -1 && 
-                calibrationADCPins[i] >= 26 && 
+        if ( calibrationADCPins[i] != -1 &&
+                calibrationADCPins[i] >= 26 &&
                 calibrationADCPins[i] <= 29 ) {
             adc_gpio_init(calibrationADCPins[i]);
         }
     }
 
     return serialize_json(doc);
+}
+
+#define ADC_MAX ((1 << 12) - 1) // 4095
+uint16_t emaCalculation(uint16_t value, uint16_t previous) {
+    float ema_value = (float)value / ADC_MAX;
+    float ema_previous = (float)previous / ADC_MAX;
+    return ((ema_smoothing*ema_value) + ((1.0f-ema_smoothing) * ema_previous)) * ADC_MAX;
 }
 
 // Get the HE Trigger Calibration using our manual GPIO input and everything
@@ -1576,7 +1791,6 @@ std::string getHETriggerCalibration()
     uint32_t id = postDoc["targetId"];
     const size_t capacity = JSON_OBJECT_SIZE(20);
     DynamicJsonDocument doc(capacity);
-
     uint32_t adcSelectPin = 0;
 
     // Mux Channels determines how many select pins we use
@@ -1629,10 +1843,18 @@ std::string getHETriggerCalibration()
         return serialize_json(doc);
     }
     adc_select_input(adcSelectPin-26);
-    sleep_us(5);
-    adc_read();
-    sleep_us(2);
-    doc["voltage"] = adc_read();
+    // Web-Config triggers getHECalibration every 50ms, game controller triggers <1ms
+    if ( calibrationSmoothing ) {
+        uint16_t read;
+        for(int i = 0; i < 50; i++) {
+            read = adc_read();
+            read = emaCalculation(read, smoothingRead);
+            smoothingRead = read;
+        }
+        doc["voltage"] = read;
+    } else {
+        doc["voltage"] = adc_read();
+    }
     return serialize_json(doc);
 }
 
@@ -1640,9 +1862,9 @@ std::string getHETriggerOptions()
 {
     const size_t capacity = JSON_OBJECT_SIZE(500);
     DynamicJsonDocument doc(capacity);
-    
+
     HETriggerInfo * heTriggers = Storage::getInstance().getAddonOptions().heTriggerOptions.triggers;
-    
+
     JsonArray triggerList = doc.createNestedArray("triggers");
     for(int i = 0; i < 32; i++) {
         JsonObject trigger = triggerList.createNestedObject();
@@ -1659,7 +1881,6 @@ std::string getHETriggerOptions()
 // Set Hall Effect Trigger Options
 std::string setHETriggerOptions()
 {
-    const size_t capacity = JSON_OBJECT_SIZE(100);
     DynamicJsonDocument doc = get_post_data();
     HETriggerInfo * heTriggers = Storage::getInstance().getAddonOptions().heTriggerOptions.triggers;
 
@@ -1670,7 +1891,7 @@ std::string setHETriggerOptions()
         heTriggers[i].max = doc["triggers"][i]["max"];
         heTriggers[i].polarity = doc["triggers"][i]["polarity"];
     }
-    
+
     Storage::getInstance().getAddonOptions().heTriggerOptions.triggers_count = 32;
     EventManager::getInstance().triggerEvent(new GPStorageSaveEvent(true));
 
@@ -1922,6 +2143,8 @@ std::string setAddonOptions()
     docToPin(heTriggerOptions.muxADCPin1, doc, "muxADCPin1");
     docToPin(heTriggerOptions.muxADCPin2, doc, "muxADCPin2");
     docToPin(heTriggerOptions.muxADCPin3, doc, "muxADCPin3");
+    docToValue(heTriggerOptions.emaSmoothing, doc, "heTriggerSmoothing");
+    docToValue(heTriggerOptions.smoothingFactor, doc, "heTriggerSmoothingFactor");
 
     EventManager::getInstance().triggerEvent(new GPStorageSaveEvent(true));
 
@@ -2374,6 +2597,8 @@ std::string getAddonOptions()
     writeDoc(doc, "muxADCPin1", cleanPin(heTriggerOptions.muxADCPin1));
     writeDoc(doc, "muxADCPin2", cleanPin(heTriggerOptions.muxADCPin2));
     writeDoc(doc, "muxADCPin3", cleanPin(heTriggerOptions.muxADCPin3));
+    writeDoc(doc, "heTriggerSmoothing", heTriggerOptions.emaSmoothing);
+    writeDoc(doc, "heTriggerSmoothingFactor", heTriggerOptions.smoothingFactor);
 
     return serialize_json(doc);
 }
@@ -2630,6 +2855,16 @@ static const std::pair<const char*, HandlerFuncPtr> handlerFuncs[] =
     { "/api/getAnimationProtoOptions", getAnimationProtoOptions },
     { "/api/setLightsDataOptions", setLightsDataOptions },
     { "/api/getLightsDataOptions", getLightsDataOptions },
+    { "/api/getLightsPresets/0", getLightsPresets0 },
+    { "/api/getLightsPresets/1", getLightsPresets1 },
+    { "/api/getLightsPresets/2", getLightsPresets2 },
+    { "/api/getLightsPresets/3", getLightsPresets3 },
+    { "/api/getLightsPresets/4", getLightsPresets4 },
+    { "/api/getLightsPresets/5", getLightsPresets5 },
+    { "/api/getLightsPresets/6", getLightsPresets6 },
+    { "/api/getLightsPresets/7", getLightsPresets7 },
+    { "/api/getLightsDataPresets", getLightsDataPresets },
+    { "/api/setLightsToDefault", setLightsToDefault },
     { "/api/setPinMappings", setPinMappings },
     { "/api/setProfileOptions", setProfileOptions },
     { "/api/setPeripheralOptions", setPeripheralOptions },

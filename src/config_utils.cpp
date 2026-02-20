@@ -421,12 +421,12 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.displayOptions, buttonLayout, BUTTON_LAYOUT);
     INIT_UNSET_PROPERTY(config.displayOptions, buttonLayoutRight, BUTTON_LAYOUT_RIGHT);
     INIT_UNSET_PROPERTY(config.displayOptions, turnOffWhenSuspended, DISPLAY_TURN_OFF_WHEN_SUSPENDED);
-    INIT_UNSET_PROPERTY(config.displayOptions, inputMode, 1);
-    INIT_UNSET_PROPERTY(config.displayOptions, turboMode, 1);
-    INIT_UNSET_PROPERTY(config.displayOptions, dpadMode, 1);
-    INIT_UNSET_PROPERTY(config.displayOptions, socdMode, 1);
-    INIT_UNSET_PROPERTY(config.displayOptions, macroMode, 1);
-    INIT_UNSET_PROPERTY(config.displayOptions, profileMode, 0);
+    INIT_UNSET_PROPERTY(config.displayOptions, inputMode, DISPLAY_INPUT_MODE);
+    INIT_UNSET_PROPERTY(config.displayOptions, turboMode, DISPLAY_TURBO_MODE);
+    INIT_UNSET_PROPERTY(config.displayOptions, dpadMode, DISPLAY_DPAD_MODE);
+    INIT_UNSET_PROPERTY(config.displayOptions, socdMode, DISPLAY_SOCD_MODE);
+    INIT_UNSET_PROPERTY(config.displayOptions, macroMode, DISPLAY_MACRO_MODE);
+    INIT_UNSET_PROPERTY(config.displayOptions, profileMode, DISPLAY_PROFILE_MODE);
     INIT_UNSET_PROPERTY(config.displayOptions, inputHistoryEnabled, !!INPUT_HISTORY_ENABLED);
     INIT_UNSET_PROPERTY(config.displayOptions, inputHistoryLength, INPUT_HISTORY_LENGTH);
     INIT_UNSET_PROPERTY(config.displayOptions, inputHistoryCol, INPUT_HISTORY_COL);
@@ -526,39 +526,43 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.ledOptions, pledIndex3, PLED3_PIN);
     INIT_UNSET_PROPERTY(config.ledOptions, pledIndex4, PLED4_PIN);
     // lightEntries
-    INIT_UNSET_PROPERTY(config.ledOptions, lightDataSize, LIGHT_DATA_SIZE);
-    const unsigned char lightData[] = { LIGHT_DATA };
-    INIT_UNSET_PROPERTY_BYTES(config.ledOptions, lightData, lightData);
+    INIT_UNSET_PROPERTY(config.ledOptions, lightClusterDataInitialised, false);
 
     //SpecialMoveOptions
     //INIT_UNSET_PROPERTY(config.specialMoveOptions, ChargeTimeInMs, 750);
     //INIT_UNSET_PROPERTY(config.specialMoveOptions, CurrentProfileIndex, 0);
  
     // animationOptions
-    if(LEDS_BRIGHTNESS >= 0 && LEDS_BRIGHTNESS <= config.ledOptions.brightnessSteps)
+    if(LEDS_BRIGHTNESS >= 0 && LEDS_BRIGHTNESS <= AnimationStation::brightnessSteps)
     {
         INIT_UNSET_PROPERTY(config.animationOptions, brightness, LEDS_BRIGHTNESS);
     }
     else
     {
-        INIT_UNSET_PROPERTY(config.animationOptions, brightness, config.ledOptions.brightnessSteps);
+        INIT_UNSET_PROPERTY(config.animationOptions, brightness, AnimationStation::brightnessSteps);
     }
     INIT_UNSET_PROPERTY(config.animationOptions, baseProfileIndex, 0);
-    INIT_UNSET_PROPERTY(config.animationOptions, autoDisableTime, 5000);
+    INIT_UNSET_PROPERTY(config.animationOptions, autoDisableTime, 15000);
 
     //Default to rainbow rotate if a fresh settings
     if(config.animationOptions.profiles[0].has_bEnabled == false)
     {
         INIT_UNSET_PROPERTY(config.animationOptions.profiles[0], bEnabled, 1);
-        INIT_UNSET_PROPERTY(config.animationOptions.profiles[0], basePressedCycleTime, 100);
-        INIT_UNSET_PROPERTY(config.animationOptions.profiles[0], baseCycleTime, 100);
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[0], basePressedCycleTime, 2);
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[0], baseCycleTime, 2);
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[0], baseCaseCycleTime, 2);
         config.animationOptions.profiles_count = 1;
         config.animationOptions.profiles[0].notPressedStaticColors_count = (NUM_BANK0_GPIOS/4)+1;
-        config.animationOptions.profiles[0].pressedStaticColors_count = 0;
+        config.animationOptions.profiles[0].pressedStaticColors_count = (NUM_BANK0_GPIOS/4)+1;
         for (unsigned int lightIndex = 0; lightIndex < (NUM_BANK0_GPIOS/4)+1; ++lightIndex) 
         {
             config.animationOptions.profiles[0].notPressedStaticColors[lightIndex] = 0; //Black
             config.animationOptions.profiles[0].pressedStaticColors[lightIndex] = 0; //Black
+        }
+        config.animationOptions.profiles[0].caseStaticColors_count = (MAX_CASE_LIGHTS/4);
+        for (unsigned int lightIndex = 0; lightIndex < (MAX_CASE_LIGHTS/4); ++lightIndex) 
+        {
+            config.animationOptions.profiles[0].caseStaticColors[lightIndex] = 0; //Black
         }
         config.animationOptions.profiles[0].caseStaticColors_count = 0;
         config.animationOptions.profiles[0].baseNonPressedEffect = AnimationNonPressedEffects::AnimationNonPressedEffects_EFFECT_RAINBOW_ROTATE;
@@ -572,10 +576,23 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     for (unsigned int profileIndex = 1; profileIndex < MAX_ANIMATION_PROFILES; ++profileIndex) 
     {
         INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], bEnabled, 0);
-        INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], basePressedCycleTime, 0);
-        INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], baseCycleTime, 0);
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], basePressedCycleTime, 2);
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], baseCycleTime, 2);
+        INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], baseCycleTime, 2);
         INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], bUseCaseLightsInPressedAnimations, 0);   
         INIT_UNSET_PROPERTY(config.animationOptions.profiles[profileIndex], bUseCaseLightsInSpecialMoves, 0);   
+        config.animationOptions.profiles[profileIndex].notPressedStaticColors_count = (NUM_BANK0_GPIOS/4)+1;
+        config.animationOptions.profiles[profileIndex].pressedStaticColors_count = (NUM_BANK0_GPIOS/4)+1;
+        for (unsigned int lightIndex = 0; lightIndex < (NUM_BANK0_GPIOS/4)+1; ++lightIndex) 
+        {
+            config.animationOptions.profiles[profileIndex].notPressedStaticColors[lightIndex] = 0; //Black
+            config.animationOptions.profiles[profileIndex].pressedStaticColors[lightIndex] = 0; //Black
+        }
+        config.animationOptions.profiles[profileIndex].caseStaticColors_count = (MAX_CASE_LIGHTS/4);
+        for (unsigned int lightIndex = 0; lightIndex < (MAX_CASE_LIGHTS/4); ++lightIndex) 
+        {
+            config.animationOptions.profiles[profileIndex].caseStaticColors[lightIndex] = 0; //Black
+        }
     }
      
     //TESTING
@@ -860,6 +877,8 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxADCPin2, HETRIGGER_ADC2);
     INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxADCPin3, HETRIGGER_ADC3);
     INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxChannels, HETRIGGER_MUX_CHANNELS);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, emaSmoothing, HETRIGGER_SMOOTHING_ENABLED);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, smoothingFactor, HETRIGGER_SMOOTHING_FACTOR);
     INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], action, HETRIGGER_HE0_ACTION);
     INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], active, HETRIGGER_HE0_ACTIVE);
     INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], idle, HETRIGGER_HE0_IDLE);
@@ -1020,7 +1039,7 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], idle, HETRIGGER_HE31_IDLE);
     INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], max, HETRIGGER_HE31_MAX);
     INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], polarity, HETRIGGER_HE31_POLARITY);
-    
+
     // reminder that this must be set or else nanopb won't retain anything
     config.addonOptions.heTriggerOptions.triggers_count = HETRIGGER_COUNT;
 

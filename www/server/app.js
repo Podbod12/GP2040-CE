@@ -17,6 +17,247 @@ const { pico: picoController } = JSON.parse(
 	readFileSync(path.resolve(__dirname, '../src/Data/Controllers.json'), 'utf8'),
 );
 
+const BoardLights = [
+	{
+		name: 'TestPad/Config A12',
+		lightData: {
+			Lights: [
+				{
+					firstLedIndex: 0,
+					numLedsOnLight: 1,
+					xCoord: 0,
+					yCoord: 2,
+					GPIOPinorCaseChainIndex: 5,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 1,
+					numLedsOnLight: 1,
+					xCoord: 2,
+					yCoord: 2,
+					GPIOPinorCaseChainIndex: 3,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 2,
+					numLedsOnLight: 1,
+					xCoord: 4,
+					yCoord: 3,
+					GPIOPinorCaseChainIndex: 4,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 3,
+					numLedsOnLight: 1,
+					xCoord: 5,
+					yCoord: 7,
+					GPIOPinorCaseChainIndex: 2,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 4,
+					numLedsOnLight: 1,
+					xCoord: 6,
+					yCoord: 2,
+					GPIOPinorCaseChainIndex: 10,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 5,
+					numLedsOnLight: 1,
+					xCoord: 8,
+					yCoord: 1,
+					GPIOPinorCaseChainIndex: 11,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 6,
+					numLedsOnLight: 1,
+					xCoord: 10,
+					yCoord: 1,
+					GPIOPinorCaseChainIndex: 12,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 7,
+					numLedsOnLight: 1,
+					xCoord: 12,
+					yCoord: 1,
+					GPIOPinorCaseChainIndex: 13,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 8,
+					numLedsOnLight: 1,
+					xCoord: 6,
+					yCoord: 4,
+					GPIOPinorCaseChainIndex: 6,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 9,
+					numLedsOnLight: 1,
+					xCoord: 8,
+					yCoord: 3,
+					GPIOPinorCaseChainIndex: 7,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 10,
+					numLedsOnLight: 1,
+					xCoord: 10,
+					yCoord: 3,
+					GPIOPinorCaseChainIndex: 8,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 11,
+					numLedsOnLight: 1,
+					xCoord: 12,
+					yCoord: 3,
+					GPIOPinorCaseChainIndex: 9,
+					lightType: 0,
+				},
+			],
+		},
+	},
+	{
+		name: 'TestPad/Config B16',
+		lightData: {
+			Lights: [
+				{
+					firstLedIndex: 0,
+					numLedsOnLight: 1,
+					xCoord: 0,
+					yCoord: 2,
+					GPIOPinorCaseChainIndex: 5,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 1,
+					numLedsOnLight: 1,
+					xCoord: 2,
+					yCoord: 2,
+					GPIOPinorCaseChainIndex: 3,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 2,
+					numLedsOnLight: 1,
+					xCoord: 4,
+					yCoord: 3,
+					GPIOPinorCaseChainIndex: 4,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 3,
+					numLedsOnLight: 1,
+					xCoord: 6,
+					yCoord: 7,
+					GPIOPinorCaseChainIndex: 2,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 4,
+					numLedsOnLight: 1,
+					xCoord: 6,
+					yCoord: 2,
+					GPIOPinorCaseChainIndex: 10,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 5,
+					numLedsOnLight: 1,
+					xCoord: 8,
+					yCoord: 1,
+					GPIOPinorCaseChainIndex: 11,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 6,
+					numLedsOnLight: 1,
+					xCoord: 10,
+					yCoord: 1,
+					GPIOPinorCaseChainIndex: 12,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 7,
+					numLedsOnLight: 1,
+					xCoord: 12,
+					yCoord: 1,
+					GPIOPinorCaseChainIndex: 13,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 8,
+					numLedsOnLight: 1,
+					xCoord: 6,
+					yCoord: 4,
+					GPIOPinorCaseChainIndex: 6,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 9,
+					numLedsOnLight: 1,
+					xCoord: 8,
+					yCoord: 3,
+					GPIOPinorCaseChainIndex: 7,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 10,
+					numLedsOnLight: 1,
+					xCoord: 10,
+					yCoord: 3,
+					GPIOPinorCaseChainIndex: 8,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 11,
+					numLedsOnLight: 1,
+					xCoord: 12,
+					yCoord: 3,
+					GPIOPinorCaseChainIndex: 9,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 12,
+					numLedsOnLight: 1,
+					xCoord: 3,
+					yCoord: 0,
+					GPIOPinorCaseChainIndex: 27,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 13,
+					numLedsOnLight: 1,
+					xCoord: 6,
+					yCoord: 0,
+					GPIOPinorCaseChainIndex: 18,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 14,
+					numLedsOnLight: 1,
+					xCoord: 8,
+					yCoord: 5,
+					GPIOPinorCaseChainIndex: 19,
+					lightType: 0,
+				},
+				{
+					firstLedIndex: 15,
+					numLedsOnLight: 1,
+					xCoord: 3,
+					yCoord: 6,
+					GPIOPinorCaseChainIndex: 26,
+					lightType: 0,
+				},
+			],
+		},
+	},
+];
+
 // Structure pin mappings to include masks and profile label
 const createPinMappings = ({ profileLabel = 'Profile', enabled = true }) => {
 	let pinMappings = { profileLabel, enabled };
@@ -282,47 +523,10 @@ app.get('/api/getGamepadOptions', (req, res) => {
 
 app.get('/api/getLedOptions', (req, res) => {
 	return res.send({
-		brightnessMaximum: 255,
-		brightnessSteps: 5,
 		dataPin: 22,
 		ledFormat: 0,
-		ledLayout: 1,
-		ledsPerButton: 2,
-		ledButtonMap: {
-			Up: 3,
-			Down: 1,
-			Left: 0,
-			Right: 2,
-			B1: 8,
-			B2: 9,
-			B3: 4,
-			B4: 5,
-			L1: 7,
-			R1: 6,
-			L2: 11,
-			R2: 10,
-			S1: null,
-			S2: null,
-			L3: null,
-			R3: null,
-			A1: null,
-			A2: null,
-		},
-		usedPins: Object.values(picoController),
-		pledType: 1,
-		pledPin1: 12,
-		pledPin2: 13,
-		pledPin3: 14,
-		pledPin4: 15,
-		pledIndex1: 12,
-		pledIndex2: 13,
-		pledIndex3: 14,
-		pledIndex4: 15,
-		pledColor: 65280,
-		caseRGBType: 0,
-		caseRGBIndex: -1,
-		caseRGBCount: 0,
 		turnOffWhenSuspended: 0,
+		brightnessMaximum: 50,
 	});
 });
 
@@ -598,6 +802,8 @@ app.get('/api/getAddonsOptions', (req, res) => {
 		muxSelectPin1: 1,
 		muxSelectPin2: 2,
 		muxSelectPin3: -1,
+		heTriggerSmoothing: 0,
+		heTriggerSmoothingFactor: 5,
 		RotaryAddonEnabled: 1,
 		PCF8575AddonEnabled: 1,
 		DRV8833RumbleAddonEnabled: 1,
@@ -617,139 +823,20 @@ app.get('/api/getAddonsOptions', (req, res) => {
 
 app.get('/api/getLightsDataOptions', (req, res) => {
 	return res.send({
-		LightData: {
-			Lights: [
-				{
-					firstLedIndex: 0,
-					numLedsOnLight: 1,
-					xCoord: 0,
-					yCoord: 2,
-					GPIOPinorCaseChainIndex: 5,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 1,
-					numLedsOnLight: 1,
-					xCoord: 2,
-					yCoord: 2,
-					GPIOPinorCaseChainIndex: 3,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 2,
-					numLedsOnLight: 1,
-					xCoord: 4,
-					yCoord: 3,
-					GPIOPinorCaseChainIndex: 4,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 3,
-					numLedsOnLight: 1,
-					xCoord: 6,
-					yCoord: 7,
-					GPIOPinorCaseChainIndex: 2,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 4,
-					numLedsOnLight: 1,
-					xCoord: 6,
-					yCoord: 2,
-					GPIOPinorCaseChainIndex: 10,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 5,
-					numLedsOnLight: 1,
-					xCoord: 8,
-					yCoord: 1,
-					GPIOPinorCaseChainIndex: 11,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 6,
-					numLedsOnLight: 1,
-					xCoord: 10,
-					yCoord: 1,
-					GPIOPinorCaseChainIndex: 12,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 7,
-					numLedsOnLight: 1,
-					xCoord: 12,
-					yCoord: 1,
-					GPIOPinorCaseChainIndex: 13,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 8,
-					numLedsOnLight: 1,
-					xCoord: 6,
-					yCoord: 4,
-					GPIOPinorCaseChainIndex: 6,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 9,
-					numLedsOnLight: 1,
-					xCoord: 8,
-					yCoord: 3,
-					GPIOPinorCaseChainIndex: 7,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 10,
-					numLedsOnLight: 1,
-					xCoord: 10,
-					yCoord: 3,
-					GPIOPinorCaseChainIndex: 8,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 11,
-					numLedsOnLight: 1,
-					xCoord: 12,
-					yCoord: 3,
-					GPIOPinorCaseChainIndex: 9,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 12,
-					numLedsOnLight: 1,
-					xCoord: 3,
-					yCoord: 0,
-					GPIOPinorCaseChainIndex: 27,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 13,
-					numLedsOnLight: 1,
-					xCoord: 6,
-					yCoord: 0,
-					GPIOPinorCaseChainIndex: 18,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 14,
-					numLedsOnLight: 1,
-					xCoord: 8,
-					yCoord: 5,
-					GPIOPinorCaseChainIndex: 19,
-					lightType: 0,
-				},
-				{
-					firstLedIndex: 15,
-					numLedsOnLight: 1,
-					xCoord: 3,
-					yCoord: 6,
-					GPIOPinorCaseChainIndex: 26,
-					lightType: 0,
-				},
-			],
-		},
+		LightData: BoardLights[0].lightData,
 	});
+});
+
+app.get('/api/getLightsDataPresets', (req, res) => {
+	return res.send(BoardLights);
+});
+
+// Hardcode presets for testing
+app.get('/api/getLightsPresets/0', (req, res) => {
+	return res.send(BoardLights[0]);
+});
+app.get('/api/getLightsPresets/1', (req, res) => {
+	return res.send(BoardLights[1]);
 });
 
 app.get('/api/getExpansionPins', (req, res) => {
@@ -782,16 +869,16 @@ app.get('/api/getExpansionPins', (req, res) => {
 app.get('/api/getHETriggerOptions', (req, res) => {
 	var triggers = [];
 	triggers.push({ action: 2, idle: 120, max: 3500, active: 1500, polarity: 0 });
-	for(var i = 1; i < 32; i++) {
+	for (var i = 1; i < 32; i++) {
 		triggers.push({
 			action: -10,
 			idle: 100,
 			active: 2000,
 			max: 3500,
-			polarity: 0
+			polarity: 0,
 		});
 	}
-	return res.send({triggers});
+	return res.send({ triggers });
 });
 
 app.get('/api/getMacroAddonOptions', (req, res) => {
@@ -887,27 +974,6 @@ app.get('/api/getFirmwareVersion', (req, res) => {
 
 app.get('/api/getButtonLayouts', (req, res) => {
 	return res.send({
-		ledLayout: {
-			id: 27,
-			indexUp: 3,
-			indexDown: 1,
-			indexLeft: 0,
-			indexRight: 2,
-			indexB1: 8,
-			indexB2: 9,
-			indexB3: 4,
-			indexB4: 5,
-			indexL1: 7,
-			indexR1: 6,
-			indexL2: 11,
-			indexR2: 10,
-			indexS1: -1,
-			indexS2: -1,
-			indexL3: 13,
-			indexR3: 14,
-			indexA1: 12,
-			indexA2: 15,
-		},
 		displayLayouts: {
 			buttonLayoutId: 27,
 			buttonLayout: {
@@ -1136,6 +1202,14 @@ app.get('/api/getButtonLayoutDefs', (req, res) => {
 			BUTTON_LAYOUT_6GAWD_ALLBUTTON_A: 31,
 			BUTTON_LAYOUT_6GAWD_ALLBUTTONPLUS_A: 32,
 			BUTTON_LAYOUT_STICKLESS_R16: 33,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT0_A: 34,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT1_A: 35,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT2_A: 36,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT3_A: 37,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT4_A: 38,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT5_A: 39,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT6_A: 40,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT7_A: 41,
 		},
 		buttonLayoutRight: {
 			BUTTON_LAYOUT_ARCADE: 0,
@@ -1176,6 +1250,16 @@ app.get('/api/getButtonLayoutDefs', (req, res) => {
 			BUTTON_LAYOUT_6GAWD_ALLBUTTON_B: 35,
 			BUTTON_LAYOUT_6GAWD_ALLBUTTONPLUS_B: 36,
 			BUTTON_LAYOUT_STICKLESS_R16B: 37,
+			BUTTON_LAYOUT_VLXB_6B: 38,
+			BUTTON_LAYOUT_SEGA2P_6B: 39,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT0_B: 40,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT1_B: 41,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT2_B: 42,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT3_B: 43,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT4_B: 44,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT5_B: 45,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT6_B: 46,
+			BUTTON_LAYOUT_BOARD_DEFINED_ALT7_B: 47,
 		},
 	});
 });
@@ -1226,7 +1310,7 @@ app.get('/api/abortGetHeldPins', async (req, res) => {
 app.post('/api/getHETriggerCalibration', (req, res) => {
 	return res.send({
 		voltage: 0.0,
-		debug: true
+		debug: true,
 	});
 });
 
