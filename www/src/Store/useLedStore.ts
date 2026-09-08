@@ -7,7 +7,7 @@ import {
 
 export const MAX_CUSTOM_COLORS = 8;
 export const MAX_NON_BUTTON_LIGHT_COLOR_INDEXES = 32;
-export const MAX_LIGHTS = 100;
+export const MAX_LIGHTS = 200;
 export const MAX_ANIMATION_PROFILES = 4;
 
 export type AnimationProfile = {
