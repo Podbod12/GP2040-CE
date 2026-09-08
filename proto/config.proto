@@ -3,6 +3,20 @@ syntax = "proto2";
 import "nanopb.proto";
 import "enums.proto";
 
+message InputModeMapping {
+	// negative if mapping disabled
+    optional int32 pinMask = 1;
+    optional InputMode inputMode = 2;
+    optional uint32 profileNumber = 3;
+}
+
+message BootModeOptions {
+    optional bool enabled = 1;
+    optional uint32 webConfigPinMask = 2;
+    optional uint32 usbModePinMask = 3;
+    repeated InputModeMapping inputModeMappings = 4 [(nanopb).max_count = 8];
+}
+
 message GamepadOptions
 {
     optional InputMode inputMode = 1;
@@ -269,6 +283,8 @@ message DisplayOptions
     optional uint32 inputHistoryLength = 28;
     optional uint32 inputHistoryCol = 29;
     optional uint32 inputHistoryRow = 30;
+    
+    optional uint32 contrast = 31;
 }
 
 message LightCluster
@@ -310,14 +326,14 @@ message LEDOptions
     optional int32 pledPin2 = 27;
     optional int32 pledPin3 = 28;
     optional int32 pledPin4 = 29;
-    optional uint32 pledColor = 30;
+    optional uint32 pledColor = 30 [deprecated = true];
 
     optional bool turnOffWhenSuspended = 31;
 
-    optional int32 pledIndex1 = 32;
-    optional int32 pledIndex2 = 33;
-    optional int32 pledIndex3 = 34;
-    optional int32 pledIndex4 = 35;
+    optional int32 pledIndex1 = 32 [deprecated = true];
+    optional int32 pledIndex2 = 33 [deprecated = true];
+    optional int32 pledIndex3 = 34 [deprecated = true];
+    optional int32 pledIndex4 = 35 [deprecated = true];
 
     optional CaseRGBType caseRGBType = 36 [deprecated = true];
     optional int32 caseRGBIndex = 37 [deprecated = true];
@@ -384,7 +400,7 @@ message AnimationProfile
 
  	optional AnimationNonPressedEffects baseCaseEffect = 10;
 
-    repeated uint32 caseStaticColors = 11 [(nanopb).max_count = 10]; //(MAX_CASE_LIGHTS/4) from AnimationStation.hpp
+    repeated uint32 nonButtonStaticColors = 11 [(nanopb).max_count = 8]; //(MAX_NON_BUTTON_LIGHT_COLOR_INDEXES/4) from AnimationStation.hpp
 
     optional uint32 pressedSpecialColor = 12;
 
@@ -395,6 +411,14 @@ message AnimationProfile
     optional bool bUseCaseLightsInPressedAnimations = 15;
 
     optional int32 baseCaseCycleTime = 16; 
+
+    optional bool bNonPressedSpecialColorIsRainbow = 17;
+    optional bool bPressedSpecialColorIsRainbow = 18;
+    optional bool bCaseSpecialColorIsRainbow = 19;
+
+    optional uint32 caseSpecialColor = 20;
+
+    optional uint32 effectContextParam = 21;
 };
 
 // This has to be kept in sync with AnimationOptions_Unpacked in animationstation.hpp
@@ -450,6 +474,10 @@ message AnalogOptions
     optional uint32 outer_deadzone2 = 21;
     optional bool auto_calibrate2 = 22;
     optional bool forced_circularity2 = 23;
+    optional uint32 joystick_center_x = 24;
+    optional uint32 joystick_center_y = 25;
+    optional uint32 joystick_center_x2 = 26;
+    optional uint32 joystick_center_y2 = 27;
 }
 
 message TurboOptions
@@ -477,8 +505,8 @@ message TurboOptions
     optional ShmupMixMode shmupMixMode = 19;
 
     optional PLEDType turboLedType = 20;
-    optional int32 turboLedIndex = 21;
-    optional uint32 turboLedColor = 22;
+    optional int32 turboLedIndex = 21  [deprecated = true];
+    optional uint32 turboLedColor = 22 [deprecated = true];
 }
 
 message SliderOptions
@@ -894,8 +922,12 @@ message HETriggerInfo
     optional GpioAction action = 1;
     optional int32 active = 2;
     optional int32 idle = 3;
-    optional int32 max = 4;
-    optional int32 polarity = 5;
+    optional int32 pressed = 4;
+    optional int32 polarity = 5 [deprecated = true];
+    optional int32 release = 6;
+    optional int32 noise = 7;
+    optional bool rapidTrigger = 8; 
+    optional bool is_polarized = 9;
 }
 
 message HETriggerOptions
@@ -977,5 +1009,7 @@ message Config
     optional MigrationHistory migrations = 14;
     optional PeripheralOptions peripheralOptions = 15;
 
-    //optional SpecialMoveOptions_Proto specialMoveOptions = 16;
+	optional BootModeOptions bootModeOptions = 16;
+
+    //optional SpecialMoveOptions_Proto specialMoveOptions = 17;
 }

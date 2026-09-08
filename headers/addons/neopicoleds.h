@@ -121,31 +121,55 @@
 #endif
 
 #ifndef LEDS_BASE_ANIMATION_INDEX
-#define LEDS_BASE_ANIMATION_INDEX 2//1
+#define LEDS_BASE_ANIMATION_INDEX AnimationNonPressedEffects::AnimationNonPressedEffects_EFFECT_RAINBOW_SYNCED
 #endif
 
-#ifndef LEDS_STATIC_COLOR_INDEX
-#define LEDS_STATIC_COLOR_INDEX 2
+#ifndef LEDS_PRESSED_ANIMATION_INDEX
+#define LEDS_PRESSED_ANIMATION_INDEX AnimationPressedEffects::AnimationPressedEffects_PRESSEDEFFECT_STATIC_COLOR
 #endif
 
-#ifndef LEDS_BUTTON_COLOR_INDEX
-#define LEDS_BUTTON_COLOR_INDEX 1
+#ifndef LEDS_CASE_ANIMATION_INDEX
+#define LEDS_CASE_ANIMATION_INDEX AnimationNonPressedEffects::AnimationNonPressedEffects_EFFECT_RAINBOW_SYNCED
 #endif
 
-#ifndef LEDS_THEME_INDEX
-#define LEDS_THEME_INDEX 0
+#ifndef LEDS_STATIC_COLOR_UNPRESSED
+#define LEDS_STATIC_COLOR_UNPRESSED ColorIndexRed 
 #endif
 
-#ifndef LEDS_RAINBOW_CYCLE_TIME
-#define LEDS_RAINBOW_CYCLE_TIME 40
+#ifndef LEDS_STATIC_COLOR_PRESSED
+#define LEDS_STATIC_COLOR_PRESSED ColorIndexWhite 
 #endif
 
-#ifndef LEDS_CHASE_CYCLE_TIME
-#define LEDS_CHASE_CYCLE_TIME 85
+#ifndef LEDS_STATIC_COLOR_CASE
+#define LEDS_STATIC_COLOR_CASE ColorIndexGreen 
 #endif
 
-#ifndef LEDS_PRESS_COLOR_COOLDOWN_TIME
-#define LEDS_PRESS_COLOR_COOLDOWN_TIME 0
+#ifndef LEDS_IDLE_SPECIAL_COLOR
+#define LEDS_IDLE_SPECIAL_COLOR ColorYellow 
+#endif
+
+#ifndef LEDS_PRESSED_SPECIAL_COLOR
+#define LEDS_PRESSED_SPECIAL_COLOR ColorGreen 
+#endif
+
+#ifndef LEDS_CASE_SPECIAL_COLOR
+#define LEDS_CASE_SPECIAL_COLOR ColorBlue 
+#endif
+
+#ifndef LEDS_IDLE_SPECIAL_COLOR_IS_RAINDOW
+#define LEDS_IDLE_SPECIAL_COLOR_IS_RAINDOW false 
+#endif
+
+#ifndef LEDS_PRESSED_SPECIAL_COLOR_IS_RAINDOW
+#define LEDS_PRESSED_SPECIAL_COLOR_IS_RAINDOW false
+#endif
+
+#ifndef LEDS_CASE_SPECIAL_COLOR_IS_RAINDOW
+#define LEDS_CASE_SPECIAL_COLOR_IS_RAINDOW false
+#endif
+
+#ifndef LEDS_AUTO_DISABLE_TIME
+#define LEDS_AUTO_DISABLE_TIME 0 // in ms
 #endif
 
 #ifndef LED_BRIGHTNESS_MAXIMUM
@@ -264,8 +288,12 @@ private:
 
 	GamepadHotkey ProcessAnimationHotkeys(Gamepad *gamepad);
 
+	//Light non button/case lights if they are in RGB mode
+	void UpdateTurboLED();
+	void UpdatePlayerLEDs();
+
 	//Legacy setup functions
-	void generateLegacyIndividualLight(int firstLedIndex, int xCoord, int yCoord, uint8_t ledsPerPixel, GpioAction actionButton);
+	void generateLegacyIndividualLight(int firstLedIndex, int xCoord, int yCoord, uint8_t ledsPerPixel, int customDataIndex, LightType lightType = LightType::LightType_ActionButton);
 	void generatedLEDButtons(std::vector<std::vector<uint8_t>> *positions, uint8_t ledsPerPixel);
 	void generatedLEDStickless(std::vector<std::vector<uint8_t>> *positions, uint8_t ledsPerPixel);
 	void generatedLEDWasd(std::vector<std::vector<uint8_t>> *positions, uint8_t ledsPerPixel);

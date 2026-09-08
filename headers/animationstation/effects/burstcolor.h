@@ -26,16 +26,16 @@ struct FGridEntry
     };
 };
 
-#define MAX_BURSTS 16
-#define BURST_DISTANCE 6
-#define MIN_TIME_BETWEEN_BURSTS_ON_BUTTON_IN_MS 100
+#define MAX_BURSTS 32
+#define DEFAULT_BURST_TAIL_PROP 0.5f
+#define MIN_TIME_BETWEEN_BURSTS_ON_BUTTON_IN_MS 50
 #define BURST_DISTANCE_PER_SEC 10.0f
 
 class BurstColor : public Animation {
 
 public:
     BurstColor(Lights& InRGBLights, EButtonCaseEffectType InButtonCaseEffectType);
-    BurstColor(Lights& InRGBLights, bool bInRandomColor, bool bInSmallBurst, std::vector<int32_t> &InPressedPins, EButtonCaseEffectType InButtonCaseEffectType);
+    BurstColor(Lights& InRGBLights, std::vector<int32_t> &InPressedPins, EButtonCaseEffectType InButtonCaseEffectType, bool IsSmall = false);
     ~BurstColor() { };
 
     virtual void Animate(RGB (&frame)[FRAME_MAX]) override;
@@ -52,7 +52,9 @@ protected:
 
     bool bRandomColor;
 
-    bool bSmallBurst;
+    int BurstLength;
+
+    int BurstTailLength;
 
     int MinXCoord = 0;
     int MinYCoord = 0;

@@ -6,7 +6,7 @@ import ResetSettings from './ResetSettings';
 import Components from './Components';
 import PinMapping from './PinMapping';
 import PeripheralMapping from './PeripheralMapping';
-import LedConfig from './LedConfig';
+import LedConfigPage from './LedConfigPage';
 import BackupPage from './BackupPage';
 import DisplayConfig from './DisplayConfig';
 import AddonsConfig from './AddonsConfig';
@@ -19,6 +19,7 @@ import HETrigger from './Addons/HETrigger';
 import InputMacroAddon from './InputMacroAddon';
 import LayoutConfig from './LayoutConfig';
 import Proto from './Proto/Index';
+import BootModeMapping from './BootModeMapping';
 
 export default {
 	Common,
@@ -29,7 +30,7 @@ export default {
 	Components,
 	PinMapping,
 	PeripheralMapping,
-	LedConfig,
+	LedConfigPage,
 	BackupPage,
 	DisplayConfig,
 	AddonsConfig,
@@ -42,4 +43,5 @@ export default {
 	ReactiveLED,
 	Proto,
 	HETrigger,
+	BootModeMapping
 };

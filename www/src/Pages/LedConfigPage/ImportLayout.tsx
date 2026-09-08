@@ -1,16 +1,20 @@
 import isEqual from 'lodash/isEqual';
+import { useTranslation } from 'react-i18next';
+import { FormikProps } from 'formik';
 import CustomSelect from '../../Components/CustomSelect';
 import { Light } from '../../Store/useLedStore';
 import useLightsPresetsStore from '../../Store/useLightsPresetsStore';
+import { LedFormValues } from './ledFormUtils';
 
 function ImportLayout({
 	lights,
 	setFieldValue,
 }: {
 	lights: Light[];
-	setFieldValue: (field: string, value: any) => void;
+	setFieldValue: FormikProps<LedFormValues>['setFieldValue'];
 }) {
 	const { presets, loading } = useLightsPresetsStore();
+	const { t } = useTranslation('');
 
 	const handleImport = async (
 		selectedOption: { value: string; label: string } | null,
@@ -35,10 +39,10 @@ function ImportLayout({
 	return (
 		<>
 			<hr className="d-md-none" />
-			<p>Choose from predefined installed layouts</p>
+			<p>{t('LedConfigPage:importLayout.description')}</p>
 			<CustomSelect
 				isLoading={loading}
-				placeholder="Select Layout..."
+				placeholder={t('LedConfigPage:importLayout.placeholder')}
 				options={options}
 				value={
 					selectedPreset?.name
