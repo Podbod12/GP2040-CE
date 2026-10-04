@@ -4,16 +4,10 @@
   </a>
 </p>
 
----
-title: LED Configuration
-description: Documentation on configuring LEDs and lights in a GP2040-CE board configuration
----
-
 # LED Configuration
 
-***NOTE  
-This page covers only the LED and lighting options of a board configuration. For the folder structure, pin mapping and the other required options, see [Board Configuration](https://gp2040-ce.info/development/board-configuration).
-***
+***NOTE***  
+***This page covers only the LED and lighting options of a board configuration. For the folder structure, pin mapping and the other required options, see [Board Configuration](https://gp2040-ce.info/development/board-configuration).***
 
 A board configuration can describe several kinds of lighting hardware. Each one is configured with `#define` entries in the board's `BoardConfig.h` file:
 
@@ -68,9 +62,8 @@ Every LED option below is optional unless marked otherwise. If you leave an opti
 | **LEDS_CASE_SPECIAL_COLOR** | `ColorBlue` | Special color used by case effects that take a second color. |
 | **LEDS_IDLE_SPECIAL_COLOR_IS_RAINBOW**, **LEDS_PRESSED_SPECIAL_COLOR_IS_RAINBOW**, **LEDS_CASE_SPECIAL_COLOR_IS_RAINBOW** | `false` | Set to `true` to make the matching special color cycle through the rainbow. |
 
-***NOTE  
-The `LEDS_STATIC_COLOR_*` options take a color index. The built-in colors are `ColorIndexBlack` (`0`), `ColorIndexWhite`, `ColorIndexRed`, `ColorIndexOrange`, `ColorIndexYellow`, `ColorIndexLimeGreen`, `ColorIndexGreen`, `ColorIndexSeafoam`, `ColorIndexAqua`, `ColorIndexSkyBlue`, `ColorIndexBlue`, `ColorIndexPurple`, `ColorIndexPink` and `ColorIndexMagenta` (`13`). The `LEDS_*_SPECIAL_COLOR` options take the matching color name without `Index`, for example `ColorYellow`.
-***
+***NOTE***  
+***The `LEDS_STATIC_COLOR_*` options take a color index. The built-in colors are `ColorIndexBlack` (`0`), `ColorIndexWhite`, `ColorIndexRed`, `ColorIndexOrange`, `ColorIndexYellow`, `ColorIndexLimeGreen`, `ColorIndexGreen`, `ColorIndexSeafoam`, `ColorIndexAqua`, `ColorIndexSkyBlue`, `ColorIndexBlue`, `ColorIndexPurple`, `ColorIndexPink` and `ColorIndexMagenta` (`13`). The `LEDS_*_SPECIAL_COLOR` options take the matching color name without `Index`, for example `ColorYellow`.***
 
 ### GPIO LED Options
 
@@ -98,9 +91,8 @@ The `LEDS_STATIC_COLOR_*` options take a color index. The built-in colors are `C
 | **BOARD_LED_TYPE** | `ON_BOARD_LED_MODE_OFF` | One of `ON_BOARD_LED_MODE_OFF`, `ON_BOARD_LED_MODE_MODE_INDICATOR`, `ON_BOARD_LED_MODE_INPUT_TEST` or `ON_BOARD_LED_MODE_PS_AUTH`. |
 | **BOARD_LED_PIN** | Board's default LED pin, or `25` | GPIO pin of the on-board LED. |
 
-***CAUTION  
-`BOARD_LEDS_PIN` (with an S) is the data pin of the RGB LED chain. `BOARD_LED_PIN` (no S) is the single on-board LED. They are unrelated settings.
-***
+***CAUTION***  
+***`BOARD_LEDS_PIN` (with an S) is the data pin of the RGB LED chain. `BOARD_LED_PIN` (no S) is the single on-board LED. They are unrelated settings.***
 
 ## RGB LED Chain
 
@@ -120,9 +112,8 @@ Check your LED datasheet for the color order. Most WS2812-style LEDs use GRB. Us
 
 The firmware always offers 10 brightness steps, so there is no step count to define. `LED_BRIGHTNESS_MAXIMUM` sets the absolute brightness of the top step, and the lower steps are even fractions of it. Keep the value at or above `10`, because lower values are raised to `10`. 
 
-***CAUTION  
-Higher brightness requires more power and more leds will also require more power. If you have lots of lights you may want to lower the max brightness to compensate for standard USB ports only providing 0.5A that has to power the board and the lights.
-***
+***CAUTION***  
+***Higher brightness requires more power and more leds will also require more power. If you have lots of lights you may want to lower the max brightness to compensate for standard USB ports only providing 0.5A that has to power the board and the lights.***
 
 ### Step 2: Reserve the Data Pin
 
@@ -156,9 +147,8 @@ first led index, number of leds, x coordinate, y coordinate, GPIO pin or color i
 | 5 | GPIO pin or color index | Meaning depends on the light type. For `LightType_ActionButton` and `LightType_Turbo`, the RP2040 GPIO pin number of the button the light is under. For `LightType_Case` and the player light types, an index into the non-button color table (`0` to `31`). |
 | 6 | Light type | One of the values in the following table. |
 
-***NOTE  
-The non-button color table has all its entry initialised by `LEDS_STATIC_COLOR_CASE` and cannot be set individually via the board config. It can only be edited via the webconfig.
-***
+***NOTE***  
+***The non-button color table has all its entry initialised by `LEDS_STATIC_COLOR_CASE` and cannot be set individually via the board config. It can only be edited via the webconfig.***
 
 | Light Type | Description |
 | ---------- | ----------- |
@@ -249,9 +239,8 @@ Written as `AnimationNonPressedEffects::AnimationNonPressedEffects_EFFECT_<name>
 - `PRESSEDEFFECT_BURST` - Creates an expanding starburst effect from the buttons location. Uses the color of the pressed button
 - `PRESSEDEFFECT_BURST_SMALL` - Creates an expanding starburst effect from the buttons location that only expands a few grid spaces until it disappears. Uses the color of the pressed button
 
-***REMINDER  
-The `LEDS_STATIC_COLOR_*` options take a color index. The built-in colors are `ColorIndexBlack` (`0`), `ColorIndexWhite`, `ColorIndexRed`, `ColorIndexOrange`, `ColorIndexYellow`, `ColorIndexLimeGreen`, `ColorIndexGreen`, `ColorIndexSeafoam`, `ColorIndexAqua`, `ColorIndexSkyBlue`, `ColorIndexBlue`, `ColorIndexPurple`, `ColorIndexPink` and `ColorIndexMagenta` (`13`). The `LEDS_*_SPECIAL_COLOR` options take the matching color name without `Index`, for example `ColorYellow`.
-***
+***REMINDER***  
+***The `LEDS_STATIC_COLOR_*` options take a color index. The built-in colors are `ColorIndexBlack` (`0`), `ColorIndexWhite`, `ColorIndexRed`, `ColorIndexOrange`, `ColorIndexYellow`, `ColorIndexLimeGreen`, `ColorIndexGreen`, `ColorIndexSeafoam`, `ColorIndexAqua`, `ColorIndexSkyBlue`, `ColorIndexBlue`, `ColorIndexPurple`, `ColorIndexPink` and `ColorIndexMagenta` (`13`). The `LEDS_*_SPECIAL_COLOR` options take the matching color name without `Index`, for example `ColorYellow`.***
 
 ### Step 5: Add Case, Player and Turbo Lights (Optional)
 
@@ -278,9 +267,8 @@ Add these lights as extra rows in the same table, after the button lights.
 
 **A turbo light** needs `TURBO_ENABLED`, `TURBO_LED_TYPE` set to `PLED_TYPE_RGB`, and one row of type `LightType_Turbo`. In position 5, use the pin number you set in `TURBO_LED_PIN`.
 
-***NOTE  
-The Haute42 COSMOX configuration only uses `LightType_ActionButton` lights. The case, player and turbo examples above were generated just for this document.
-***
+***NOTE***  
+***The Haute42 COSMOX configuration only uses `LightType_ActionButton` lights. The case, player and turbo examples above were generated just for this document.***
 
 ## GPIO LEDs
 
