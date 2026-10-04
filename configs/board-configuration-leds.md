@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://gp2040-ce.info">
+    <img alt="GP2040-CE" src="https://raw.githubusercontent.com/OpenStickCommunity/Site/main/docs/assets/images/gp2040-ce-logo.png" />
+  </a>
+</p>
+
 ---
 title: LED Configuration
 description: Documentation on configuring LEDs and lights in a GP2040-CE board configuration
@@ -5,9 +11,9 @@ description: Documentation on configuring LEDs and lights in a GP2040-CE board c
 
 # LED Configuration
 
-:::note
+***NOTE  
 This page covers only the LED and lighting options of a board configuration. For the folder structure, pin mapping and the other required options, see [Board Configuration](https://gp2040-ce.info/development/board-configuration).
-:::
+***
 
 A board configuration can describe several kinds of lighting hardware. Each one is configured with `#define` entries in the board's `BoardConfig.h` file:
 
@@ -60,11 +66,11 @@ Every LED option below is optional unless marked otherwise. If you leave an opti
 | **LEDS_IDLE_SPECIAL_COLOR** | `ColorYellow` | Special color used by idle effects that take a second color. |
 | **LEDS_PRESSED_SPECIAL_COLOR** | `ColorGreen` | Special color used by pressed effects that take a second color. |
 | **LEDS_CASE_SPECIAL_COLOR** | `ColorBlue` | Special color used by case effects that take a second color. |
-| **LEDS_IDLE_SPECIAL_COLOR_IS_RAINDOW**, **LEDS_PRESSED_SPECIAL_COLOR_IS_RAINDOW**, **LEDS_CASE_SPECIAL_COLOR_IS_RAINDOW** | `false` | Set to `true` to make the matching special color cycle through the rainbow. |
+| **LEDS_IDLE_SPECIAL_COLOR_IS_RAINBOW**, **LEDS_PRESSED_SPECIAL_COLOR_IS_RAINBOW**, **LEDS_CASE_SPECIAL_COLOR_IS_RAINBOW** | `false` | Set to `true` to make the matching special color cycle through the rainbow. |
 
-:::caution
-The three `..._IS_RAINDOW` option names are spelled this way in the firmware source. Use the spelling shown, or the define is ignored.
-:::
+***NOTE  
+The `LEDS_STATIC_COLOR_*` options take a color index. The built-in colors are `ColorIndexBlack` (`0`), `ColorIndexWhite`, `ColorIndexRed`, `ColorIndexOrange`, `ColorIndexYellow`, `ColorIndexLimeGreen`, `ColorIndexGreen`, `ColorIndexSeafoam`, `ColorIndexAqua`, `ColorIndexSkyBlue`, `ColorIndexBlue`, `ColorIndexPurple`, `ColorIndexPink` and `ColorIndexMagenta` (`13`). The `LEDS_*_SPECIAL_COLOR` options take the matching color name without `Index`, for example `ColorYellow`.
+***
 
 ### GPIO LED Options
 
@@ -92,9 +98,9 @@ The three `..._IS_RAINDOW` option names are spelled this way in the firmware sou
 | **BOARD_LED_TYPE** | `ON_BOARD_LED_MODE_OFF` | One of `ON_BOARD_LED_MODE_OFF`, `ON_BOARD_LED_MODE_MODE_INDICATOR`, `ON_BOARD_LED_MODE_INPUT_TEST` or `ON_BOARD_LED_MODE_PS_AUTH`. |
 | **BOARD_LED_PIN** | Board's default LED pin, or `25` | GPIO pin of the on-board LED. |
 
-:::caution
+***CAUTION  
 `BOARD_LEDS_PIN` (with an S) is the data pin of the RGB LED chain. `BOARD_LED_PIN` (no S) is the single on-board LED. They are unrelated settings.
-:::
+***
 
 ## RGB LED Chain
 
@@ -112,7 +118,11 @@ Define the GPIO pin that drives the LED chain, the color order of your LEDs, and
 
 Check your LED datasheet for the color order. Most WS2812-style LEDs use GRB. Use the `W` formats only for LEDs with a dedicated white channel.
 
-The firmware always offers 10 brightness steps, so there is no step count to define. `LED_BRIGHTNESS_MAXIMUM` sets the absolute brightness of the top step, and the lower steps are even fractions of it. Keep the value at or above `10`, because lower values are raised to `10`.
+The firmware always offers 10 brightness steps, so there is no step count to define. `LED_BRIGHTNESS_MAXIMUM` sets the absolute brightness of the top step, and the lower steps are even fractions of it. Keep the value at or above `10`, because lower values are raised to `10`. 
+
+***CAUTION  
+Higher brightness requires more power and more leds will also require more power. If you have lots of lights you may want to lower the max brightness to compensate for standard USB ports only providing 0.5A that has to power the board and the lights.
+***
 
 ### Step 2: Reserve the Data Pin
 
@@ -141,10 +151,14 @@ first led index, number of leds, x coordinate, y coordinate, GPIO pin or color i
 | -------- | ---- | ----------- |
 | 1 | First LED index | Position of the light's first LED in the chain. The first LED after the controller is `0`. |
 | 2 | Number of LEDs | Number of consecutive LEDs that make up this light. Use `1` for one LED per button. |
-| 3 | X coordinate | Horizontal position of the light on a grid that you define. |
-| 4 | Y coordinate | Vertical position of the light on the same grid. |
-| 5 | GPIO pin or color index | Meaning depends on the light type. For `LightType_ActionButton` and `LightType_Turbo`, the RP2040 GPIO pin number of the switch. For `LightType_Case` and the player light types, an index into the non-button color table (`0` to `31`). |
+| 3 | X coordinate | Horizontal position of the light on a grid that you define. (left to right) |
+| 4 | Y coordinate | Vertical position of the light on the same grid. (top to bottom) |
+| 5 | GPIO pin or color index | Meaning depends on the light type. For `LightType_ActionButton` and `LightType_Turbo`, the RP2040 GPIO pin number of the button the light is under. For `LightType_Case` and the player light types, an index into the non-button color table (`0` to `31`). |
 | 6 | Light type | One of the values in the following table. |
+
+***NOTE  
+The non-button color table has all its entry initialised by `LEDS_STATIC_COLOR_CASE` and cannot be set individually via the board config. It can only be edited via the webconfig.
+***
 
 | Light Type | Description |
 | ---------- | ----------- |
@@ -174,9 +188,9 @@ Follow these rules when you write the table:
 - **List the LEDs in the physical order of the chain.** If your PCB wires the left direction LED first, its first LED index is `0`. The Haute42 COSMOX file keeps a comment that lists the order of the LEDs, which makes the table easy to review.
 - **Set the size to the number of rows,** not the number of values. The web configurator uses `LIGHT_DATA_SIZE_DEFAULT` to read the table back.
 - **Do not define the chain length.** The firmware works it out from the table: it is the highest `first LED index + number of LEDs`.
-- **Use the physical GPIO number in position 5.** The firmware checks that GPIO pin directly to decide whether a light is pressed, so a switch wired to a duplicate pin, such as the extra buttons on the Haute42 COSMOX, can have its own light.
+- **Use the physical GPIO number in position 5.** The firmware checks that GPIO pin directly to decide whether a light is pressed, so a switch/button wired to a duplicate pin, such as the extra buttons on the Haute42 COSMOX, can have its own light.
 - **Stay within the limits.** Each value is stored in one byte (`0` to `255`), and a layout can contain at most 100 lights and 100 LEDs.
-- **Choose any grid scale you like.** Coordinates are relative. The firmware subtracts the smallest X and Y value, so empty space on the left and top is removed. The coordinates matter for effects that move across the device, such as the left-to-right, top-to-bottom and circular chase effects, so place the lights where they sit on the device.
+- **Choose any grid scale you like.** Coordinates are relative. The firmware subtracts the smallest X and Y value, so empty space on the left and top is removed. The coordinates matter for effects that move across the device, such as the left-to-right, top-to-bottom and circular chase effects, so place the lights where they sit on the device. Try to minimise dead space or there will be gaps in some of the aniamtion types
 
 #### Additional Light Presets
 
@@ -201,41 +215,43 @@ Pick the idle and pressed effects that new devices start with. The Haute42 COSMO
 #define LEDS_BASE_ANIMATION_INDEX AnimationNonPressedEffects::AnimationNonPressedEffects_EFFECT_RAINBOW_SYNCED
 ```
 
-`LEDS_BASE_ANIMATION_INDEX` and `LEDS_CASE_ANIMATION_INDEX` take one of the idle effects below. If both are set to the same effect, case lights follow the button effect.
+`LEDS_BASE_ANIMATION_INDEX` and `LEDS_CASE_ANIMATION_INDEX` take one of the idle effects below. If both are set to the same effect then they act as a single animation (this is most visible in effects like the various directional chases)
 
 Written as `AnimationNonPressedEffects::AnimationNonPressedEffects_EFFECT_<name>`, the available names are:
 
-- `EFFECT_STATIC_COLOR`
-- `EFFECT_RAINBOW_SYNCED`
-- `EFFECT_RAINBOW_ROTATE`
-- `EFFECT_CHASE_INDEX`
-- `EFFECT_CHASE_SEQUENTIAL`
-- `EFFECT_CHASE_CIRCLE_CLOCKWISE`
-- `EFFECT_CHASE_CIRCLE_ANTICLOCKWISE`
-- `EFFECT_CHASE_LEFT_TO_RIGHT`
-- `EFFECT_CHASE_RIGHT_TO_LEFT`
-- `EFFECT_CHASE_TOP_TO_BOTTOM`
-- `EFFECT_CHASE_BOTTOM_TO_TOP`
-- `EFFECT_CHASE_INDEX_PINGPONG`
-- `EFFECT_CHASE_SEQUENTIAL_PINGPONG`
-- `EFFECT_CHASE_CIRCLE_PINGPONG`
-- `EFFECT_CHASE_HORIZONTAL_PINGPONG`
-- `EFFECT_CHASE_VERTICAL_PINGPONG`
-- `EFFECT_CHASE_RANDOM`
-- `EFFECT_JIGGLESTATIC`
-- `EFFECT_JIGGLETWOSTATICS`
-- `EFFECT_RAIN`
+- `EFFECT_STATIC_COLOR` - Static color. Each button can define its own idle color.
+- `EFFECT_RAINBOW_SYNCED` - All the buttons show the same color which morphs over time through the rainbow of colors
+- `EFFECT_RAINBOW_ROTATE` - All the buttons show a rainbow wave that moves from the top left to the bottom right of the grid.
+- `EFFECT_CHASE_INDEX` - All the buttons show their idle color and a trail, using the special color, snakes across the buttons based on their position in the grid (left to right and top to bottom, like reading a western book)
+- `EFFECT_CHASE_SEQUENTIAL` - All the buttons show their idle color and a trail, using the special color, snakes across the buttons based on the order the are physically connected in the chain
+- `EFFECT_CHASE_CIRCLE_CLOCKWISE` - All the buttons show their idle color and a trail, using the special color, snakes across the buttons based on their offset from the center of the grid in a clockwise fashion
+- `EFFECT_CHASE_CIRCLE_ANTICLOCKWISE` - All the buttons show their idle color and a trail, using the special color, snakes across the buttons based on their offset from the center of the grid in an anti-clockwise fashion
+- `EFFECT_CHASE_LEFT_TO_RIGHT` - All the buttons show their idle color and a vertical bar, using the special color, moves across the buttons based on their grid location from left to right
+- `EFFECT_CHASE_RIGHT_TO_LEFT` - All the buttons show their idle color and a vertical bar, using the special color, moves across the buttons based on their grid location from right to left
+- `EFFECT_CHASE_TOP_TO_BOTTOM` - All the buttons show their idle color and a horizontal bar, using the special color, moves across the buttons based on their grid location from top to bottom
+- `EFFECT_CHASE_BOTTOM_TO_TOP` - All the buttons show their idle color and a horizontal bar, using the special color, moves across the buttons based on their grid location from bottom to top
+- `EFFECT_CHASE_INDEX_PINGPONG` - Same as `EFFECT_CHASE_INDEX` except that when the cycle finishes then it reverses direciton until it reaches the start before beginning again.
+- `EFFECT_CHASE_SEQUENTIAL_PINGPONG` - Same as `EFFECT_CHASE_SEQUENTIAL` except that when the cycle finishes then it reverses direciton until it reaches the start before beginning again.
+- `EFFECT_CHASE_CIRCLE_PINGPONG` - Same as `EFFECT_CHASE_CIRCLE_CLOCKWISE/EFFECT_CHASE_CIRCLE_ANTICLOCKWISE` except that when the cycle finishes then it reverses direciton until it reaches the start before beginning again.
+- `EFFECT_CHASE_HORIZONTAL_PINGPONG` - Same as `EFFECT_CHASE_LEFT_TO_RIGHT/EFFECT_CHASE_RIGHT_TO_LEFT` except that when the cycle finishes then it reverses direciton until it reaches the start before beginning again.
+- `EFFECT_CHASE_VERTICAL_PINGPONG` - Same as `EFFECT_CHASE_TOP_TO_BOTTOM/EFFECT_CHASE_BOTTOM_TO_TOP` except that when the cycle finishes then it reverses direciton until it reaches the start before beginning again.
+- `EFFECT_CHASE_RANDOM` - Combines all of the above Chase effects, picking a new effect as soon as the previous one ends
+- `EFFECT_JIGGLESTATIC` - Flickers the brightness of a light based on its idle color
+- `EFFECT_JIGGLETWOSTATICS`- Flickers the brightness of a light between its idle color and the Special color
+- `EFFECT_RAIN` - Sets all the lights to their idle color and then spawns "drips" using the special color that traverse down the grid. (Think the matrix screens from the Matrix movie)
 
 `LEDS_PRESSED_ANIMATION_INDEX` takes one of these pressed effects, written as `AnimationPressedEffects::AnimationPressedEffects_<name>`:
 
-- `PRESSEDEFFECT_STATIC_COLOR`
-- `PRESSEDEFFECT_RANDOM`
-- `PRESSEDEFFECT_JIGGLESTATIC`
-- `PRESSEDEFFECT_JIGGLETWOSTATICS`
-- `PRESSEDEFFECT_BURST`
-- `PRESSEDEFFECT_BURST_SMALL`
+- `PRESSEDEFFECT_STATIC_COLOR` - Static color. Each button can define its own pressed color.
+- `PRESSEDEFFECT_RANDOM` - Randomly selected color each time the button is pressed
+- `PRESSEDEFFECT_JIGGLESTATIC` - Flickers the brightness of a light based on its pressed color
+- `PRESSEDEFFECT_JIGGLETWOSTATICS` - Flickers the brightness of a light between its pressed color and the Special color
+- `PRESSEDEFFECT_BURST` - Creates an expanding starburst effect from the buttons location. Uses the color of the pressed button
+- `PRESSEDEFFECT_BURST_SMALL` - Creates an expanding starburst effect from the buttons location that only expands a few grid spaces until it disappears. Uses the color of the pressed button
 
+***REMINDER  
 The `LEDS_STATIC_COLOR_*` options take a color index. The built-in colors are `ColorIndexBlack` (`0`), `ColorIndexWhite`, `ColorIndexRed`, `ColorIndexOrange`, `ColorIndexYellow`, `ColorIndexLimeGreen`, `ColorIndexGreen`, `ColorIndexSeafoam`, `ColorIndexAqua`, `ColorIndexSkyBlue`, `ColorIndexBlue`, `ColorIndexPurple`, `ColorIndexPink` and `ColorIndexMagenta` (`13`). The `LEDS_*_SPECIAL_COLOR` options take the matching color name without `Index`, for example `ColorYellow`.
+***
 
 ### Step 5: Add Case, Player and Turbo Lights (Optional)
 
@@ -262,9 +278,9 @@ Add these lights as extra rows in the same table, after the button lights.
 
 **A turbo light** needs `TURBO_ENABLED`, `TURBO_LED_TYPE` set to `PLED_TYPE_RGB`, and one row of type `LightType_Turbo`. In position 5, use the pin number you set in `TURBO_LED_PIN`.
 
-:::note
-The Haute42 COSMOX configuration only uses `LightType_ActionButton` lights. The case, player and turbo examples above come from reading how the firmware handles those types, so test them on hardware before you ship them.
-:::
+***NOTE  
+The Haute42 COSMOX configuration only uses `LightType_ActionButton` lights. The case, player and turbo examples above were generated just for this document.
+***
 
 ## GPIO LEDs
 
@@ -328,7 +344,7 @@ Older board configurations describe the RGB chain without a light table. Each bu
 // ...and so on for B1-B4, L1, R1, L2, R2, S1, S2, L3, R3, A1 and A2
 ```
 
-The firmware uses this setup only when `LIGHT_DATA_NAME_DEFAULT` is empty. For new board configurations, use [light data](#describing-the-lights) instead. It supports lights that are not tied to a standard button, such as extra buttons, case lights and per-device layouts, and it positions lights from real coordinates instead of an approximation.
+The firmware uses this setup only when `LIGHT_DATA_NAME_DEFAULT` is empty and usage should be phased out as soon as we can. For new board configurations, use [light data](#describing-the-lights) instead. Its vastly superior and supports lights that are not tied to a standard button, such as extra buttons, case lights and per-device layouts, and it positions lights from real coordinates instead of an approximation.
 
 In the legacy setup, in RGB mode `PLED1_PIN` to `PLED4_PIN` are read as LED positions in the chain rather than GPIO pins, and all four must be set. The `pledIndex` and `caseRGB` settings from older firmware, and the brightness step count, are no longer used.
 
